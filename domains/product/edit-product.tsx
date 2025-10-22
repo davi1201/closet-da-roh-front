@@ -6,7 +6,7 @@ import { Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import ProductForm, { ProductFormValues } from '@/forms/product-form';
 import { maskCurrency } from '@/utils/formatters';
-import { getProductById, updateProduct } from './product-service'; // Importe a função de atualização
+import { getProductById, updateProduct } from './product-service';
 import { ProductResponse } from './types/product';
 
 export default function EditProduct() {
@@ -21,20 +21,26 @@ export default function EditProduct() {
     try {
       const data: ProductResponse = await getProductById(productId);
 
+      const formattedVariants = data.variants.map((variant) => ({
+        _id: variant._id,
+        size: variant.size,
+        color: variant.color,
+        buy_price: maskCurrency((Number(variant.buy_price) * 100).toString()),
+        sale_price: maskCurrency((Number(variant.sale_price) * 100).toString()),
+        quantity: variant.quantity,
+        minimum_stock: variant.minimum_stock,
+        sku: variant.sku,
+      }));
+
       const initialValues: ProductFormValues = {
         _id: data._id,
         supplier_id: data.supplier._id,
-
         name: data.name,
+        code: data.code || '',
         description: data.description || '',
         category: data.category,
-        color: data.color,
-        size: data.size,
-
-        buy_price: maskCurrency(data.buy_price.toString()),
-        sell_price: maskCurrency(data.sale_price.toString()),
-
         images: data.images,
+        variants: formattedVariants,
       };
 
       setProductData(initialValues);
@@ -61,11 +67,15 @@ export default function EditProduct() {
 
     const productId = values._id || id;
 
+    const formattedVariants = values.variants.map((variant) => ({
+      ...variant,
+      buy_price: variant.buy_price.replace(/[^\d.-]/g, ''),
+      sale_price: variant.sale_price.replace(/[^\d.-]/g, ''),
+    }));
+
     const formattedValues = {
       ...values,
-
-      buy_price: values.buy_price.replace(/[^\d.-]/g, ''),
-      sale_price: values.sell_price.replace(/[^\d.-]/g, ''),
+      variants: formattedVariants,
     };
 
     updateProduct(productId, formattedValues, files)

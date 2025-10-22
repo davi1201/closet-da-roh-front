@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Grid, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import BarcodeScanner from '@/components/ui/barcode-scanner';
+import BarcodeScannerIOSFallback from '@/components/ui/barcode-scanner';
 import ImageUploaderMantine from '@/components/ui/upload-file';
 import { PRODUCT_CATEGORIES } from '@/constants/product-categories';
 import { PRODUCT_COLORS } from '@/constants/product-colors';
@@ -12,67 +12,210 @@ import { PRODUCT_SIZES } from '@/constants/product-sizes';
 import { ProductImage } from '@/domains/product/types/product';
 import { getAllSuppliers } from '@/domains/suppliers/supplier-service';
 import { SupplierResponse } from '@/domains/suppliers/types/supplier';
-import useImageUploader from '@/hooks/use-image-uploader';
+import useImageUploader, { ImageObject } from '@/hooks/use-image-uploader';
 import { maskCurrency } from '@/utils/formatters';
 
+export interface ProductVariant {
+  _id?: string;
+  size: string | null;
+  color: string | null;
+  buy_price: string;
+  sale_price: string;
+  quantity?: number | null;
+  minimum_stock?: number | null;
+  sku?: string | null;
+}
+
 export interface ProductFormValues {
-  _id?: string; // Opcional, usado para edição
+  _id?: string;
   code: string;
   name: string;
   description: string;
-  color: string | null;
-  size: string | null;
-  buy_price: string;
-  sell_price: string;
   category: string | null;
-  supplier_id: string | null;
   images: ProductImage[];
+  supplier_id: string | null;
+  variants: ProductVariant[];
 }
 
 interface ProductFormProps {
   initialValues?: ProductFormValues;
-  onSubmit: (values: ProductFormValues, files: File[]) => void;
-  isLoading?: boolean;
-  saveAndCopy?: boolean;
+  onSubmit: (values: ProductFormValues, files: File[]) => Promise<void>;
+  isLoading: boolean;
 }
 
-export default function ProductForm({
-  initialValues,
-  onSubmit,
-  isLoading = false,
-  saveAndCopy = false,
-}: ProductFormProps) {
+interface ProductVariantItemProps {
+  listKey: 'variants';
+  index: number;
+  form: any;
+  availableColors: typeof PRODUCT_COLORS;
+  availableSizes: typeof PRODUCT_SIZES;
+}
+
+const ProductVariantItem = ({
+  form,
+  listKey,
+  index,
+  availableColors,
+  availableSizes,
+}: ProductVariantItemProps) => {
+  const handleBuyPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+
+    const maskedBuyPrice = maskCurrency(rawValue);
+    form.setFieldValue(`${listKey}.${index}.buy_price`, maskedBuyPrice);
+
+    const onlyDigits = rawValue.replace(/[^\d]/g, '');
+
+    const numericBuyPriceInCents = parseFloat(onlyDigits);
+
+    if (!isNaN(numericBuyPriceInCents)) {
+      const numericSalePrice = numericBuyPriceInCents * 2.5;
+
+      form.setFieldValue(`${listKey}.${index}.sale_price`, maskCurrency(numericSalePrice));
+    } else {
+      form.setFieldValue(`${listKey}.${index}.sale_price`, '');
+    }
+  };
+  return (
+    <>
+      <Grid key={index} align="flex-end">
+        <Grid.Col span={{ base: 6, sm: 3 }}>
+          <Select
+            withAsterisk
+            label="Cor"
+            placeholder="Selecione a cor"
+            data={availableColors}
+            {...form.getInputProps(`${listKey}.${index}.color`)}
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 3 }}>
+          <Select
+            withAsterisk
+            label="Tamanho"
+            placeholder="Tamanho"
+            data={availableSizes}
+            {...form.getInputProps(`${listKey}.${index}.size`)}
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 3 }}>
+          <TextInput
+            withAsterisk
+            label="Preço Compra"
+            placeholder="R$ 0,00"
+            {...form.getInputProps(`${listKey}.${index}.buy_price`)}
+            onChange={handleBuyPriceChange}
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 3 }}>
+          <TextInput
+            disabled
+            withAsterisk
+            label="Preço Venda"
+            placeholder="R$ 0,00"
+            {...form.getInputProps(`${listKey}.${index}.sale_price`)}
+          />
+        </Grid.Col>
+      </Grid>
+      <Grid
+        key={index + 1}
+        align="flex-end"
+        style={{
+          borderBottom: '1px dashed var(--mantine-color-gray-3)',
+          paddingBottom: '16px',
+        }}
+      >
+        <Grid.Col span={{ base: 6, sm: 2 }}>
+          <TextInput
+            withAsterisk
+            label="Quantidade"
+            type="number"
+            placeholder="0"
+            value={form.values[listKey][index]?.quantity ?? ''}
+            onChange={(e) => form.setFieldValue(`${listKey}.${index}.quantity`, e.target.value)}
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 2 }}>
+          <TextInput
+            withAsterisk
+            label="Estoque Mínimo"
+            type="number"
+            placeholder="0"
+            {...form.getInputProps(`${listKey}.${index}.minimum_stock`)}
+            value={form.values[listKey][index]?.minimum_stock ?? ''}
+            onChange={(e) =>
+              form.setFieldValue(`${listKey}.${index}.minimum_stock`, e.target.value)
+            }
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, sm: 1 }}>
+          <Button
+            variant="outline"
+            color="red"
+            fullWidth
+            onClick={() => {
+              form.removeListItem(listKey, index);
+            }}
+          >
+            Remover
+          </Button>
+        </Grid.Col>
+      </Grid>
+    </>
+  );
+};
+
+export default function ProductForm({ initialValues, onSubmit, isLoading }: ProductFormProps) {
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
-  const [isImagesInitialized, setIsImagesInitialized] = useState(false); // NOVO ESTADO
-  const [openScanner, setOpenScanner] = useState(false);
+  const [isImagesInitialized, setIsImagesInitialized] = useState(false);
 
   const form = useForm<ProductFormValues>({
     initialValues: {
       name: '',
       code: '',
       description: '',
-      color: null,
-      size: null,
-      buy_price: '',
-      sell_price: '',
       category: null,
       supplier_id: null,
       images: [],
+      variants: [
+        {
+          size: null,
+          color: null,
+          buy_price: '',
+          sale_price: '',
+          quantity: 1,
+          minimum_stock: 1,
+        },
+      ],
       ...initialValues,
     },
     validate: {
       name: (value) => (value.length < 2 ? 'Nome muito curto' : null),
       description: (value) => (value.length < 5 ? 'Descrição muito curta' : null),
-      color: (value) => (value ? null : 'Selecione uma cor'),
-      size: (value) => (value ? null : 'Selecione um tamanho'),
-      buy_price: (value) => (Number(value.replace(/[^\d.-]/g, '')) <= 0 ? 'Preço inválido' : null),
-      sell_price: (value) => (Number(value.replace(/[^\d.-]/g, '')) <= 0 ? 'Preço inválido' : null),
       category: (value) => (value ? null : 'Selecione uma categoria'),
       supplier_id: (value) => (value ? null : 'Selecione um fornecedor'),
+      variants: {
+        size: (value) => (value ? null : 'Tamanho é obrigatório'),
+        color: (value) => (value ? null : 'Cor é obrigatória'),
+        buy_price: (value) => (value ? null : 'Preço de Compra é obrigatório'),
+        sale_price: (value) => (value ? null : 'Preço de Venda é obrigatório'),
+        quantity: (value) => (value ? null : 'Quantidade é obrigária'),
+        minimum_stock: (value) => (value ? null : 'Estoque Mínimo é obrigatório'),
+      },
     },
   });
 
-  const imageUploader = useImageUploader(5);
+  const handleImagesChange = useCallback(
+    (images: ImageObject[]) => {
+      // @ts-ignore
+      form.setFieldValue('images', images);
+    },
+    [form]
+  );
+
+  const imageUploader = useImageUploader({
+    maxLimit: 5,
+    onImagesChange: handleImagesChange,
+  });
 
   const fetchSuppliers = async () => {
     getAllSuppliers()
@@ -85,15 +228,16 @@ export default function ProductForm({
   };
 
   const handleSubmit = (values: ProductFormValues) => {
-    onSubmit(values, imageUploader.files);
-
-    if (saveAndCopy) {
-      form.setFieldValue('color', null);
-      form.setFieldValue('size', null);
-    } else {
-      form.reset();
-      imageUploader.reset();
+    if (imageUploader.files.length === 0 && values.images.length === 0) {
+      notifications.show({
+        title: 'Amor 😳😳😳',
+        message: 'Ta esquecendo das imagens gatinha. Quero ver esse produto lindo',
+        color: 'red',
+      });
+      return;
     }
+
+    onSubmit(values, imageUploader.files);
   };
 
   useEffect(() => {
@@ -101,35 +245,78 @@ export default function ProductForm({
   }, []);
 
   useEffect(() => {
-    // 🚨 A nova condição CRÍTICA: Roda APENAS se houver valores iniciais E AINDA NÃO tiver sido inicializado.
     if (initialValues?.images && initialValues.images.length > 0 && !isImagesInitialized) {
       const imageObjects = initialValues.images.map((img) => ({
         id: img._id,
         previewUrl: img.url,
+        key: img.key,
       }));
 
       imageUploader.setInitialImages(imageObjects);
-      setIsImagesInitialized(true); // Marca como inicializado para evitar repetição
+      setIsImagesInitialized(true);
     }
   }, [initialValues?.images, isImagesInitialized, imageUploader]);
 
+  const variantFields = form.values.variants.map((_, index) => {
+    const otherSelectedColors = form.values.variants
+      .filter((__, i) => i !== index)
+      .map((v) => v.color);
+
+    const otherSelectedSizes = form.values.variants
+      .filter((__, i) => i !== index)
+      .map((v) => v.size);
+
+    const availableColors = PRODUCT_COLORS.filter((c) => !otherSelectedColors.includes(c.value));
+    const availableSizes = PRODUCT_SIZES.filter((s) => !otherSelectedSizes.includes(s.value));
+
+    return (
+      <ProductVariantItem
+        key={index}
+        form={form}
+        listKey="variants"
+        index={index}
+        availableColors={availableColors}
+        availableSizes={availableSizes}
+      />
+    );
+  });
+
+  // ##### CORREÇÃO APLICADA AQUI #####
+  const handleAddVariant = () => {
+    const currentVariants = form.values.variants;
+    let newBuyPrice = '';
+    let newSalePrice = '';
+    let quantityDefault = 1;
+
+    // Pega os preços da última variante, se ela existir
+    if (currentVariants.length > 0) {
+      const lastVariant = currentVariants[currentVariants.length - 1];
+      newBuyPrice = lastVariant.buy_price;
+      newSalePrice = lastVariant.sale_price;
+      quantityDefault = lastVariant.quantity || 1;
+    }
+
+    form.insertListItem('variants', {
+      size: null,
+      color: null,
+      buy_price: newBuyPrice, // Usa o preço copiado
+      sale_price: newSalePrice, // Usa o preço copiado
+      quantity: quantityDefault,
+      minimum_stock: 1,
+    });
+  };
+  // ##### FIM DA CORREÇÃO #####
+
   return (
     <form onSubmit={form.onSubmit(handleSubmit)} style={{ width: '100%' }}>
+      <BarcodeScannerIOSFallback onChange={(code) => form.setFieldValue('code', code)} />
       <Stack gap="md">
         <Grid>
-          {/* <Grid.Col span={12}>
-            <Button onClick={() => setOpenScanner(true)}>Abrir Scanner</Button>
-            {openScanner && (
-              <BarcodeScanner
-                onDetected={(value) => window.alert(`Código detectado: ${value}`)}
-                onClose={() => setOpenScanner(false)}
-              />
-            )}
-          </Grid.Col> */}
           <Grid.Col span={{ base: 12, md: 2 }}>
             <TextInput
               withAsterisk
               label="Código"
+              type="number"
               placeholder="Código do produto"
               {...form.getInputProps('code')}
             />
@@ -164,24 +351,6 @@ export default function ProductForm({
           <Grid.Col span={{ base: 12, sm: 4 }}>
             <Select
               withAsterisk
-              label="Cor"
-              placeholder="Selecione a cor"
-              data={PRODUCT_COLORS}
-              {...form.getInputProps('color')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 4 }}>
-            <Select
-              withAsterisk
-              label="Tamanho"
-              placeholder="Selecione o tamanho"
-              data={PRODUCT_SIZES}
-              {...form.getInputProps('size')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 4 }}>
-            <Select
-              withAsterisk
               label="Categoria"
               placeholder="Selecione a categoria"
               data={PRODUCT_CATEGORIES}
@@ -190,26 +359,18 @@ export default function ProductForm({
           </Grid.Col>
         </Grid>
 
-        <Grid>
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <TextInput
-              withAsterisk
-              label="Preço de Venda"
-              placeholder="R$ 0,00"
-              {...form.getInputProps('sell_price')}
-              onChange={(e) => form.setFieldValue('sell_price', maskCurrency(e.target.value))}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <TextInput
-              withAsterisk
-              label="Preço de Compra"
-              placeholder="R$ 0,00"
-              {...form.getInputProps('buy_price')}
-              onChange={(e) => form.setFieldValue('buy_price', maskCurrency(e.target.value))}
-            />
-          </Grid.Col>
-        </Grid>
+        <Text fw={600} mt="lg">
+          Variações de Produto (Cor e Teto)
+        </Text>
+        <Stack gap="md">
+          {variantFields}
+          <Button
+            variant="light"
+            onClick={handleAddVariant} // Usa a nova função
+          >
+            Adicionar Variação
+          </Button>
+        </Stack>
 
         <div style={{ marginTop: '40px' }}>
           <Text>Upload de Imagens</Text>

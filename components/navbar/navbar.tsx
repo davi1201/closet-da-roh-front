@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { IconMoonStars, IconSun } from '@tabler/icons-react';
 import {
@@ -19,18 +19,26 @@ interface NavbarProps {
 }
 
 const linksMockdata = [
+  { to: 'sales', label: 'Vendas' },
   { to: 'clients', label: 'Clientes' },
-  { to: 'suppliers', label: 'Fornecedores' },
   { to: 'products', label: 'Produtos' },
-  { to: 'categories', label: 'Categorias' },
-  { to: 'colors', label: 'Cores' },
-  { to: 'sizes', label: 'Tamanhos' },
+  { to: 'suppliers', label: 'Fornecedores' },
+  { to: 'abandoned-carts', label: 'Carrinhos Abandonados' },
+  { to: 'available-days-and-times', label: 'Dias e Horários Disponíveis' },
+  { to: 'config', label: 'Configurações' },
 ];
 
 export default function NavBar({ toggle }: NavbarProps) {
+  const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState('Dashboard');
   const [activeLink, setActiveLink] = useState('Produtos');
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   const links = linksMockdata.map((link) => (
     <Link

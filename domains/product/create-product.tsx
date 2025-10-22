@@ -5,53 +5,54 @@ import { useRouter } from 'next/navigation';
 import { Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import ProductForm, { ProductFormValues } from '@/forms/product-form';
-import { saveProduct } from './product-service';
+import { saveProduct } from './product-service'; // Verifique se este é o caminho correto
 
 export default function CreateProduct() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaveAndCopy, setIsSaveAndCopy] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (values: ProductFormValues, files: File[]) => {
     setIsLoading(true);
 
-    if (files.length === 0) {
+    try {
+      await saveProduct(values, files);
       notifications.show({
-        title: 'Amor 😳😳😳',
-        message: 'Ta esquecendo das imagens gatinha. Quero ver esse produto lindo',
+        title: 'Amor 😍😍😍',
+        message: 'Produto salvo com sucesso!',
+        color: 'green',
+      });
+      router.push('/backoffice/products');
+    } catch (error) {
+      notifications.show({
+        title: 'Vixi 😢😢😢',
+        message: 'Deu ruim ao salvar o produto, procure seu marido urgente',
         color: 'red',
       });
+      console.error('Erro ao salvar produto:', error);
+    } finally {
       setIsLoading(false);
-      return;
     }
+  };
 
-    saveProduct(
+  const initialValues: ProductFormValues = {
+    _id: undefined,
+    code: '',
+    name: '',
+    description: '',
+    category: null,
+    supplier_id: null,
+    images: [],
+    variants: [
       {
-        ...values,
-        buy_price: values.buy_price.replace(/[^\d.-]/g, ''),
-        sale_price: values.sell_price.replace(/[^\d.-]/g, ''),
+        size: null,
+        color: null,
+        buy_price: '',
+        sale_price: '',
+        quantity: 1,
+        minimum_stock: 1,
+        sku: null,
       },
-      files
-    )
-      .then(() => {
-        router.push('/backoffice/products');
-        notifications.show({
-          title: 'Amor 😍😍😍',
-          message: 'Produto criado meu bem, agora é com você minha linda',
-          color: 'green',
-        });
-      })
-      .catch((error) => {
-        notifications.show({
-          title: 'Vixi 😢😢😢',
-          message: 'Deu ruim ao criar o produto, procure seu marido urgente',
-          color: 'red',
-        });
-        console.error('Erro ao criar produto:', error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    ],
   };
 
   return (
@@ -60,23 +61,7 @@ export default function CreateProduct() {
         Cadastrar Produto
       </Text>
 
-      <ProductForm
-        initialValues={{
-          code: '',
-          name: '',
-          description: '',
-          color: null,
-          size: null,
-          buy_price: '',
-          sell_price: '',
-          category: null,
-          supplier_id: null,
-          images: [],
-        }}
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-        saveAndCopy={isSaveAndCopy}
-      />
+      <ProductForm onSubmit={handleSubmit} initialValues={initialValues} isLoading={isLoading} />
     </>
   );
 }

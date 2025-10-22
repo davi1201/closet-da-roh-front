@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
-import { Badge, Button, Card, Flex, Grid, Group, Image, Stack, Text } from '@mantine/core';
-import { formatPrice } from '@/utils/formatters';
+import { Button, Grid, Group, Stack, Text } from '@mantine/core';
+import ProductCard from '@/components/shared/product-card';
+import { useCartStore } from '@/store';
 import ProductFilter from './product-filter';
 import { getAllProducts } from './product-service';
 import { ProductResponse } from './types/product';
@@ -13,6 +14,8 @@ export default function ListAllProducts() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const searchLower = searchTerm.trim().toLowerCase();
+  const saleFinalizedCount = useCartStore((state) => state.saleFinalizedCount);
 
   const fetchProducts = async () => {
     getAllProducts()
@@ -67,7 +70,7 @@ export default function ListAllProducts() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [saleFinalizedCount]);
 
   return (
     <>
@@ -80,60 +83,17 @@ export default function ListAllProducts() {
             Adicionar Produto
           </Button>
         </Group>
-        <ProductFilter applyFilter={(term) => setSearchTerm(term)} />
+        <ProductFilter applyFilter={setSearchTerm} />
         <Grid gutter="md">
           {products
-            .filter((product) => product.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            .filter((product) => {
+              const nameMatches = product.name?.toLowerCase().includes(searchLower) ?? false;
+              const codeMatches = product.code?.toLowerCase().includes(searchLower) ?? false;
+              return searchLower === '' ? true : nameMatches || codeMatches;
+            })
             .map((product) => (
-              <Grid.Col span={{ base: 12, md: 4, lg: 3 }} key={product._id}>
-                <Card shadow="sm" padding="lg" radius="md" withBorder>
-                  <Card.Section>
-                    <Image src={product.images[0].url} height={360} alt="Norway" />
-                  </Card.Section>
-                  <Group justify="space-between" mt="md" mb="xs">
-                    <Text fw={500}>{product.name}</Text>
-                    <Badge color="white" variant="light" size="lg" radius="xs">
-                      {formatPrice(parseFloat(product.sale_price) / 100)}
-                    </Badge>
-                  </Group>
-                  <Text size="md" c="dimmed">
-                    {product.description}
-                  </Text>
-
-                  <Flex mt="md" gap="xs" align="center">
-                    <Text size="md" c="dimmed">
-                      Cor:
-                    </Text>
-                    <Badge variant="light" size="md" color={product.color || 'white'} radius="xs">
-                      {product.color}
-                    </Badge>
-                  </Flex>
-                  <Flex mt="md" gap="xs" align="center">
-                    <Text size="md" c="dimmed">
-                      Tamanho:
-                    </Text>
-                    <Badge variant="outline" size="md" color="white" radius="xs">
-                      {product.size}
-                    </Badge>
-                  </Flex>
-
-                  <Flex direction="column">
-                    <Button variant="gradient" fullWidth mt="md" radius="md">
-                      Condições de venda
-                    </Button>
-
-                    <Button
-                      variant="filled"
-                      color="yellow"
-                      fullWidth
-                      mt="md"
-                      radius="md"
-                      onClick={() => handleEdit(product._id)}
-                    >
-                      Editar
-                    </Button>
-                  </Flex>
-                </Card>
+              <Grid.Col span={{ base: 12, xs: 12, sm: 6, md: 4, lg: 3 }} key={product._id}>
+                <ProductCard product={product} handleEdit={handleEdit} />
               </Grid.Col>
             ))}
         </Grid>

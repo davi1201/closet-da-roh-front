@@ -1,0 +1,102 @@
+/* components/carousel/FashionCarousel.module.css */
+
+.carouselWrapper {
+  /* Pode adicionar margens ou padding ao redor do carrossel se precisar */
+  margin-bottom: var(--mantine-spacing-xl);
+}
+
+.slideCard {
+  position: relative;
+  height: 100%; /* Ocupa a altura definida no Carousel */
+  display: flex;
+  align-items: center; /* Centraliza o conteúdo verticalmente */
+  justify-content: center; /* Centraliza o conteúdo horizontalmente */
+  overflow: hidden; /* Garante que a imagem não vaze */
+}
+
+.slideImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cobre a área do slide sem distorcer, cortando se necessário */
+  position: absolute; /* Para o overlay e conteúdo ficarem por cima */
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.slideOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2; /* Acima da imagem, abaixo do conteúdo */
+}
+
+.slideContent {
+  position: relative;
+  z-index: 3; /* Acima do overlay */
+  color: white; /* Cor do texto padrão */
+  text-align: center;
+  max-width: 80%; /* Limita a largura do texto para melhor leitura */
+  padding: var(--mantine-spacing-lg);
+}
+
+.slideTitle {
+  font-size: var(--mantine-font-size-h1);
+  line-height: 1.2;
+  margin-bottom: var(--mantine-spacing-md);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Sombra para o título */
+
+  @media (max-width: var(--mantine-breakpoint-sm)) {
+    font-size: var(--mantine-font-size-h2); /* Reduz tamanho em mobile */
+  }
+}
+
+.slideDescription {
+  font-size: var(--mantine-font-size-lg);
+  margin-bottom: var(--mantine-spacing-xl);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Sombra para a descrição */
+
+  @media (max-width: var(--mantine-breakpoint-sm)) {
+    font-size: var(--mantine-font-size-md); /* Reduz tamanho em mobile */
+  }
+}
+
+.slideButton {
+  /* Estilização padrão do botão, mas pode ajustar aqui */
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+
+  &:hover {
+    background-color: transparent;
+    color: white;
+  }
+}
+
+/* Estilos para os indicadores (bolinhas na parte inferior) */
+/* Você pode sobrescrever as variáveis CSS do Mantine ou usar seletores mais específicos */
+.carouselWrapper :global(.mantine-Carousel-indicators) {
+  bottom: var(--mantine-spacing-md); /* Ajusta a posição das bolinhas */
+}
+.carouselWrapper :global(.mantine-Carousel-indicator) {
+  background-color: rgba(255, 255, 255, 0.5); /* Cor das bolinhas */
+}
+.carouselWrapper :global(.mantine-Carousel-indicator[data-active]) {
+  background-color: white; /* Cor da bolinha ativa */
+}
+
+/* Estilos para as setas de navegação (se withControls for usado) */
+.carouselWrapper :global(.mantine-Carousel-controls) {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.carouselWrapper :global(.mantine-Carousel-control) {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  border-radius: var(--mantine-radius-md);
+}
+.carouselWrapper :global(.mantine-Carousel-control:hover) {
+  background-color: rgba(0, 0, 0, 0.6);
+}

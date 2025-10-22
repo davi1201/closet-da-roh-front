@@ -1,4 +1,5 @@
 import { Supplier } from '@/domains/suppliers/types/supplier';
+import { ProductVariant } from '@/forms/product-form';
 
 export interface ProductImage {
   key: string;
@@ -19,10 +20,12 @@ export interface ProductData {
 }
 
 export interface ProductResponse extends ProductData {
+  code: string;
   _id: string;
   supplier: Supplier;
   images: ProductImage[];
   created_at: string;
   updated_at: string;
   image_urls?: string[];
+  variants: ProductVariant[];
 }

@@ -1,12 +1,12 @@
 export const PRODUCT_COLORS = [
-  { value: 'red', label: 'Vermelho' },
-  { value: 'blue', label: 'Azul' },
-  { value: 'green', label: 'Verde' },
   { value: 'yellow', label: 'Amarelo' },
-  { value: 'black', label: 'Preto' },
+  { value: 'blue', label: 'Azul' },
   { value: 'white', label: 'Branco' },
+  { value: 'gray', label: 'Cinza' },
+  { value: 'orange', label: 'Laranja' },
+  { value: 'black', label: 'Preto' },
   { value: 'pink', label: 'Rosa' },
   { value: 'purple', label: 'Roxo' },
-  { value: 'orange', label: 'Laranja' },
-  { value: 'gray', label: 'Cinza' },
+  { value: 'green', label: 'Verde' },
+  { value: 'red', label: 'Vermelho' },
 ];

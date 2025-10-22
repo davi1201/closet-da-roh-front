@@ -19,7 +19,7 @@ import {
 } from '@mantine/core';
 
 type DataGridProps<T> = {
-  columns: ColumnDef<T>[];
+  columns: ColumnDef<T>[] & { actions?: ColumnDef<T>; rowBgColor?: string }[];
   data: T[];
   useRowClicked?: boolean;
   totalRows?: number;
@@ -118,11 +118,11 @@ export function DataGrid<T>({
                 style={{ cursor: useRowClicked ? 'pointer' : 'default' }}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>
+                  <Table.Td key={cell.id}>
                     {(cell.getValue() as string) === ''
                       ? '-'
                       : flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                  </Table.Td>
                 ))}
               </Table.Tr>
             ))}

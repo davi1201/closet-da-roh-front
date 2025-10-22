@@ -1,59 +1,54 @@
+// src/app/layout.tsx (CORRIGIDO - Server Component)
+
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import '@mantine/carousel/styles.css';
+import '@mantine/dates/styles.css';
 
 import React from 'react';
-import { Metadata } from 'next'; // Importe o tipo Metadata
-import { ColorSchemeScript, mantineHtmlProps, MantineProvider } from '@mantine/core';
-import { Notifications } from '@mantine/notifications';
+import { Metadata } from 'next';
+import { ColorSchemeScript, MantineProvider } from '@mantine/core'; // Removido mantineHtmlProps, useState, QueryClientProvider daqui
+import { Notifications } from '@mantine/notifications'; // Removido daqui
 import { theme } from '../theme';
+import Providers from './providers'; // Importa o novo componente Providers
 
 // ----------------------------------------------------
-// 1. OBJETO METADATA AJUSTADO
+// METADATA - Permanece aqui (Server Component)
 // ----------------------------------------------------
 export const metadata: Metadata = {
-  title: 'Nome do Seu PWA', // Atualizado
-  description: 'Seu PWA rodando com Next.js e Mantine!', // Atualizado
+  title: 'Camarim da Roh', // Seu título
+  description: 'Agendamento de Visitas e Loja Online', // Sua descrição
 
-  // 1. Configuração PWA Universal
   manifest: '/manifest.json',
-  themeColor: '#000000', // Cor da barra de navegação do sistema
+  themeColor: '#FFFFFF', // Cor tema (ex: branco)
 
-  // 2. Configurações ESPECÍFICAS para iOS (Safari)
   appleWebApp: {
-    title: 'Seu PWA', // Nome que aparece na tela inicial do iOS
-    statusBarStyle: 'black-translucent', // Define a cor e estilo da barra de status no PWA instalado
-    capable: true, // Habilita o modo de tela cheia (standalone)
+    title: 'Camarim da Roh',
+    statusBarStyle: 'default', // Ou 'black', 'black-translucent'
+    capable: true,
   },
 
-  // 3. Ícone Touch Icon para iOS
   icons: {
-    icon: '/favicon.svg', // Seu favicon padrão
-    apple: '/apple-touch-icon.png', // Requer um arquivo 180x180 na pasta public/
+    icon: '/favicon.svg',
+    apple: '/apple-touch-icon.png', // Verifique se este arquivo existe na pasta /public
   },
 };
 
-export default function RootLayout({ children }: { children: any }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Ajustado o tipo de children
   return (
-    <html lang="pt-BR" {...mantineHtmlProps}>
+    <html lang="pt-BR">
       <head>
         <ColorSchemeScript />
         <link rel="shortcut icon" href="/favicon.svg" />
-
-        {/* A Apple usa esta tag para o ícone de atalho na tela inicial */}
-        {/* A tag 'icons.apple' no metadata fará a injeção disso automaticamente, 
-            mas podemos garantir com o link para o ícone de alta resolução se preferir: */}
-        {/* <link rel="apple-touch-icon" href="/apple-touch-icon.png" /> */}
-
         <meta
           name="viewport"
-          content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no, viewport-fit=cover" // Adicionado 'viewport-fit=cover' para telas com notch
+          content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no, viewport-fit=cover"
         />
       </head>
       <body>
-        <MantineProvider theme={theme} defaultColorScheme="light">
-          <Notifications position="top-right" />
-          {children}
-        </MantineProvider>
+        {/* Renderiza o componente cliente que contém os providers */}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

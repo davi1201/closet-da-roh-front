@@ -1,138 +1,103 @@
-import { useEffect, useRef, useState } from 'react';
-import { BrowserMultiFormatReader } from '@zxing/browser';
-import { motion } from 'framer-motion';
-import { Button, Center, Overlay, Text } from '@mantine/core';
+'use client';
 
-interface BarcodeScannerProps {
-  onDetected: (code: string) => void;
-  onClose?: () => void;
+import React, { useRef, useState } from 'react';
+import { IconBarcode } from '@tabler/icons-react';
+import { BarcodeFormat, BrowserMultiFormatReader, DecodeHintType } from '@zxing/library';
+import { Button, Loader, Stack, Text } from '@mantine/core';
+
+interface BarcodeScannerIOSFallbackProps {
+  onChange: (code: string) => void;
 }
 
-export default function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [reader] = useState(() => new BrowserMultiFormatReader());
-  const [isScanning, setIsScanning] = useState(false);
+export default function BarcodeScannerIOSFallback({ onChange }: BarcodeScannerIOSFallbackProps) {
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    let active = true;
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const startScanner = async () => {
-      try {
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+    setIsLoading(true);
+    setError(null);
+    setScanResult(null);
 
-        if (!devices.length) {
-          setError('Nenhuma câmera encontrada.');
-          return;
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageUrl = e.target?.result as string;
+        if (!imageUrl) {
+          throw new Error('Não foi possível ler a imagem.');
         }
 
-        const selectedDeviceId = devices[devices.length - 1].deviceId; // geralmente câmera traseira
+        // Configurar o leitor ZXing
+        const hints = new Map();
+        const formats = [
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.QR_CODE /* Adicione outros formatos se precisar */,
+        ];
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+        const codeReader = new BrowserMultiFormatReader(hints);
 
-        await reader.decodeFromVideoDevice(
-          selectedDeviceId,
-          videoRef.current!,
-          (result, error, controls) => {
-            if (result && active) {
-              const code = result.getText();
-              setIsScanning(false);
-              controls?.stop();
-              onDetected(code);
-              onClose?.();
-            }
+        try {
+          // Decodificar a imagem (pode precisar de um <img> element temporário ou usar direto do Data URL)
+          const result = await codeReader.decodeFromImageUrl(imageUrl);
+          onChange && onChange(result.getText());
+        } catch (decodeError: any) {
+          console.error('Erro ao decodificar:', decodeError);
+          // Trata erros comuns do ZXing
+          if (decodeError.name === 'NotFoundException') {
+            setError('Nenhum código de barras encontrado na imagem.');
+          } else if (decodeError.name === 'ChecksumException') {
+            setError('Código de barras inválido (erro de checksum).');
+          } else {
+            setError('Não foi possível ler o código de barras.');
           }
-        );
+        } finally {
+          setIsLoading(false);
+          // Limpa o input para permitir tirar outra foto igual em seguida
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      };
+      reader.onerror = () => {
+        setError('Erro ao carregar a imagem.');
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(file); // Lê o arquivo como Data URL
+    } catch (err: any) {
+      setError(err.message || 'Erro inesperado.');
+      setIsLoading(false);
+    }
+  };
 
-        setIsScanning(true);
-      } catch (err) {
-        console.error(err);
-        setError('Erro ao acessar a câmera.');
-      }
-    };
-
-    startScanner();
-
-    return () => {
-      active = false;
-      //@ts-ignore
-      reader.stopContinuousDecode?.();
-    };
-  }, [reader, onDetected, onClose]);
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'black',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          transform: 'scaleX(-1)', // espelha como câmera frontal, mas para trás fica natural
-        }}
+    <Stack>
+      <Button onClick={triggerFileInput} disabled={isLoading}>
+        <IconBarcode size={18} />
+        {isLoading ? <Loader size="xs" /> : 'Escanear Código (Abrir Câmera)'}
+      </Button>
+
+      {/* Input escondido */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment" // Pede a câmera traseira
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
       />
 
-      {/* Overlay de mira */}
-      <Overlay opacity={0.3} color="black" />
-
-      <Center
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: '60%',
-          height: 120,
-          transform: 'translate(-50%, -50%)',
-          border: '2px solid white',
-          borderRadius: 8,
-        }}
-      />
-
-      {/* Animação de scanning */}
-      {isScanning && (
-        <motion.div
-          initial={{ top: 'calc(50% - 60px)' }}
-          animate={{ top: 'calc(50% + 60px)' }}
-          transition={{ duration: 1, repeat: Infinity, repeatType: 'reverse' }}
-          style={{
-            position: 'absolute',
-            left: '20%',
-            width: '60%',
-            height: 2,
-            backgroundColor: 'red',
-          }}
-        />
+      {error && (
+        <Text c="red" size="sm">
+          {error}
+        </Text>
       )}
-
-      {/* Barra inferior */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 20,
-          left: 0,
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        {error && <Text c="red">{error}</Text>}
-
-        <Button color="gray" onClick={onClose} variant="light">
-          Fechar
-        </Button>
-      </div>
-    </div>
+    </Stack>
   );
 }

@@ -37,3 +37,27 @@ export function formatPrice(value: number) {
     currency: 'BRL',
   });
 }
+
+export function formatOnlyDate(dateString: string) {
+  if (!dateString) {
+    return 'Data Indisponível';
+  }
+
+  try {
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+      return 'Data Inválida';
+    }
+
+    // Retorna a data no formato 'DD/MM/AAAA'
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric', // 'numeric' garante 4 dígitos (AAAA)
+    });
+  } catch (error) {
+    console.error('Erro ao formatar data:', error);
+    return 'Erro de Formatação';
+  }
+}
