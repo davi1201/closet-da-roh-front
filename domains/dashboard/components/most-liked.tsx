@@ -21,9 +21,10 @@ export function MostLikedList({ products }: MostLikedListProps) {
           {/* Mesma altura do feed */}
           <Stack gap="md">
             {products.map((item) => (
-              <Group key={item.product._id} justify="space-between" wrap="nowrap">
+              <Group key={item.product.id} justify="space-between" wrap="nowrap">
                 <Group gap="sm" wrap="nowrap">
                   <Avatar
+                    //@ts-ignore
                     src={item.product.images?.[0]?.url || '/placeholder.jpg'}
                     alt={item.product.name}
                     radius="sm"
@@ -31,7 +32,7 @@ export function MostLikedList({ products }: MostLikedListProps) {
                   <Stack gap={0}>
                     <Anchor
                       component={Link}
-                      href={`/backoffice/products/edit/${item.product._id}`}
+                      href={`/backoffice/products/edit/${item.product.id}`}
                       size="sm"
                       fw={500}
                     >

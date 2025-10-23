@@ -42,6 +42,7 @@
     "embla-carousel": "^8.5.2",
     "embla-carousel-autoplay": "^8.5.2",
     "embla-carousel-react": "^8.5.2",
+    "firebase": "^12.4.0",
     "framer-motion": "^12.23.24",
     "install": "^0.13.0",
     "lottie-react": "^2.4.1",

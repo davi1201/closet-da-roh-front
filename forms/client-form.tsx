@@ -18,6 +18,7 @@ export default function ClientForm({ initialValues }: ClientFormProps) {
   const router = useRouter();
 
   const form = useForm<Omit<Client, '_id'>>({
+    //@ts-ignore
     initialValues: {
       name: '',
       phoneNumber: '',
@@ -62,6 +63,7 @@ export default function ClientForm({ initialValues }: ClientFormProps) {
 
   return (
     <>
+      {/* @ts-ignore */}
       <form onSubmit={form.onSubmit(handleSubmit)} style={{ width: '100%' }}>
         <Stack gap="md">
           <Grid>

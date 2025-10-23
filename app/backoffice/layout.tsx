@@ -1,24 +1,75 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { IconShoppingBag } from '@tabler/icons-react';
-import { AppShell, Burger, Button, Flex, Group, Modal, Text } from '@mantine/core';
+import {
+  Alert,
+  AppShell,
+  Burger,
+  Button,
+  Center,
+  Flex,
+  Group,
+  Loader,
+  Modal,
+  Text,
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Logo } from '@/components/icons/logo';
 import NavBar from '@/components/navbar/navbar';
 import { ClientCart } from '@/components/shared/client-cart';
 import { AnimatedSplashScreen } from '@/components/ui/splash-screen';
-import { useCartModalStore, useCartStore } from '@/store';
+import { usePushNotifications } from '@/hooks/use-push-notification';
+import { useAuthStore, useCartModalStore, useCartStore } from '@/store';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [opened, { toggle }] = useDisclosure();
   const isCartModalOpen = useCartModalStore((state) => state.isCartModalOpen);
-  const open = useCartModalStore((state) => state.openCartModal);
-  const close = useCartModalStore((state) => state.closeCartModal);
+  const openCart = useCartModalStore((state) => state.openCartModal);
+  const closeCart = useCartModalStore((state) => state.closeCartModal);
+  const { requestPermission, permissionStatus } = usePushNotifications();
+
+  const userInfo = useAuthStore((state) => state.userInfo);
+  const router = useRouter();
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAppLoading(false);
+    }, 1500); // Shorter splash duration
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      if (isAppLoading) return;
+
+      const currentUser = useAuthStore.getState().userInfo;
+      if (!currentUser) {
+        router.push('/login');
+      } else {
+        setIsVerifying(false);
+      }
+    };
+
+    const hydrationTimer = setTimeout(checkAuth, 50); // Shorter delay
+
+    return () => clearTimeout(hydrationTimer);
+  }, [isAppLoading, router]);
 
   if (isAppLoading) {
     return <AnimatedSplashScreen onAnimationComplete={() => setIsAppLoading(false)} />;
+  }
+
+  if (isVerifying) {
+    return (
+      <Center style={{ height: '100vh' }}>
+        <Loader />
+      </Center>
+    );
   }
 
   return (
@@ -32,7 +83,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           collapsed: { mobile: !opened },
         }}
       >
-        {/* HEADER */}
         <AppShell.Header
           style={{
             display: 'flex',
@@ -47,32 +97,51 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Burger opened={opened} onClick={toggle} hiddenFrom="lg" size="sm" />
               <Logo width={150} height={75} />
             </Group>
-            <CartSummaryButton onClick={() => open(null)} />
+            <CartSummaryButton onClick={() => openCart(null)} />
           </Flex>
         </AppShell.Header>
 
-        {/* NAVBAR */}
         <AppShell.Navbar p="lg">
           <NavBar toggle={toggle} />
         </AppShell.Navbar>
 
-        {/* MAIN */}
         <AppShell.Main>
+          {permissionStatus === 'default' && (
+            <Alert
+              title="Notificações"
+              color="blue"
+              variant="light"
+              withCloseButton
+              closeButtonLabel="Fechar"
+              mb="md"
+            >
+              <Text>Receba notificações sobre agendamentos e estoque.</Text>
+              <Button onClick={requestPermission} size="xs" mt="xs">
+                Ativar Notificações
+              </Button>
+            </Alert>
+          )}
+          {permissionStatus === 'denied' && (
+            <Alert title="Notificações Bloqueadas" color="yellow" variant="light" mb="md">
+              <Text size="sm">
+                Você bloqueou as notificações. Para reativá-las, verifique as configurações do seu
+                navegador.
+              </Text>
+            </Alert>
+          )}
           <Flex direction="column" style={{ minHeight: '100%' }}>
             {children}
           </Flex>
         </AppShell.Main>
       </AppShell>
 
-      {/* MODAL DE CARRINHOS */}
-      <Modal opened={isCartModalOpen} size="xl" onClose={close} title="Transações em Andamento">
+      <Modal opened={isCartModalOpen} size="xl" onClose={closeCart} title="Transações em Andamento">
         <ClientCart />
       </Modal>
     </>
   );
 }
 
-/* ------------------------ COMPONENTE BOTÃO DO CARRINHO ------------------------ */
 function CartSummaryButton({ onClick }: { onClick: () => void }) {
   const cartCount = useCartStore((state) => Object.keys(state.carts).length);
 
