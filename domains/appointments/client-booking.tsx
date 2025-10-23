@@ -268,20 +268,21 @@ export default function ClientBookingPage() {
       if (isPast || (!isAvailable && dateYMD >= startOfTodayYMD)) {
         props.disabled = true;
         props.style = {
-          color: 'var(--mantine-color-gray-4)', // Cor cinza claro para desabilitado
+          color: 'var(--mantine-color-gray-5)', // Cor cinza claro para desabilitado
           // Evita que o fundo verde apareça em dias passados que *tinham* disponibilidade
           backgroundColor: 'transparent',
         };
       }
 
       // 2. Estilo para dias disponíveis (não passados)
-      // if (isAvailable && !isPast) {
-      //   props.style = {
-      //     ...(props.style || {}), // Mantém a cor cinza se for desabilitado por outra razão (improvável aqui)
-      //     // backgroundColor: 'var(--mantine-color-green-5)',
-      //     color: 'var(--mantine-color-white)',
-      //   };
-      // }
+      if (isAvailable && !isPast) {
+        props.style = {
+          ...(props.style || {}), // Mantém a cor cinza se for desabilitado por outra razão (improvável aqui)
+          // backgroundColor: 'var(--mantine-color-green-5)',
+          fontWeight: 'bold',
+          color: 'var(--mantine-color-gray-9)', // Texto escuro para melhor contraste
+        };
+      }
 
       // 3. Estilo para o dia SELECIONADO (SOBRESCREVE outros estilos)
       if (selectedDateYMD === dateYMD) {
@@ -291,11 +292,11 @@ export default function ClientBookingPage() {
 
         props.style = {
           ...props.style, // Mantém borderRadius se disponível
+          fontWeight: 'bold',
           backgroundColor: isAvailable
             ? 'var(--mantine-color-green-9)'
             : 'var(--mantine-color-gray-2)', // Azul se disponível, cinza se não
           color: isAvailable ? 'white' : 'var(--mantine-color-gray-5)', // Branco se disponível, cinza escuro se não
-          fontWeight: 'bold',
         };
       }
 

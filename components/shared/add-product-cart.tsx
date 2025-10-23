@@ -119,7 +119,7 @@ export default function AddCartProduct({
           </Alert>
         )}
         <Autocomplete
-          label="Selecione o Cliente"
+          label="Selecione o cliente"
           data={clients.map((c) => c.label)}
           value={clientSelectName}
           onChange={handleAutocompleteChange}
@@ -139,20 +139,20 @@ export default function AddCartProduct({
           </Card.Section>
 
           <Stack gap="md" mt="md">
-            <Text fw={500}>{product.name}</Text>
+            <Text fw={500}>{product.name.toUpperCase()}</Text>
             <Badge variant="filled" size="lg" radius="md">
               {formatPrice(parseFloat(product.variant.sale_price))}
             </Badge>
 
-            <Text size="sm" color="dimmed">
-              {product.description}
+            <Text size="sm" color="dimmed" truncate="end">
+              {product.description.toLocaleUpperCase()}
             </Text>
             <Flex align="center" gap="xs">
               <Text size="sm" color="dimmed">
-                Tamanho:
+                TAMANHO:
               </Text>
 
-              <Badge color={theme.colors?.gray[1]} size="lg" variant="outline">
+              <Badge color="gray" size="lg" radius="md" variant="outline">
                 {product.variant.size}
               </Badge>
             </Flex>

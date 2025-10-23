@@ -15,6 +15,7 @@ export interface ClientAddress {
 }
 
 export interface Client {
+  products_url: string;
   _id: string;
   name: string;
   phoneNumber: string;

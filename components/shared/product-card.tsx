@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { IconPencil, IconShoppingCart } from '@tabler/icons-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { Carousel } from '@mantine/carousel';
 import {
@@ -27,6 +28,15 @@ interface ProductCardProps {
   handleEdit: (id: string) => void;
 }
 
+const sizeOrder = {
+  P: 1,
+  M: 2,
+  G: 3,
+  GG: 4,
+  XG: 5,
+  XGG: 6,
+};
+
 export default function ProductCard({ product, handleEdit }: ProductCardProps) {
   const theme = useMantineTheme();
   const [variantActive, setVariantActive] = useState(0);
@@ -41,7 +51,7 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
     <>
       <Card shadow="sm" padding="lg" radius="md" withBorder>
         <Card.Section>
-          <Carousel height={360}>
+          <Carousel height={360} withControls={product.images.length > 1}>
             {product.images.map((image) => {
               return (
                 <Carousel.Slide
@@ -78,27 +88,37 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
           </Badge>
         </Flex>
 
-        <Text size="md" c="dimmed">
-          {product.description}
+        <Text size="md" c="dimmed" truncate="end">
+          {product.description.toLocaleUpperCase()}
         </Text>
 
         <Flex mt="md" gap="xs" align="center">
           <Text size="md" c="dimmed">
-            Cor:
+            COR:
           </Text>
-          {product.variants.map((variant) => (
-            <ColorSwatch
-              key={variant._id}
-              color={variant.color || theme.colors.gray[2]}
-              size={20}
-              radius="lg"
-            />
-          ))}
+          {product.variants
+            .sort((a, b) => {
+              // Use o 'sizeOrder' para comparar.
+              // Dê um valor alto (99) para tamanhos não encontrados.
+              // @ts-ignore
+              const orderA = sizeOrder[a.size] || 99;
+              // @ts-ignore
+              const orderB = sizeOrder[b.size] || 99;
+              return orderA - orderB;
+            })
+            .map((variant) => (
+              <ColorSwatch
+                key={variant._id}
+                color={variant.color || theme.colors.gray[2]}
+                size={20}
+                radius="sm"
+              />
+            ))}
         </Flex>
 
         <Flex mt="md" gap="xs" align="center">
           <Text size="md" c="dimmed">
-            Tamanho:
+            TAMANHO:
           </Text>
           <SegmentedControl
             data={product.variants.map((variant) => ({
@@ -118,9 +138,11 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
             variant="gradient"
             fullWidth
             mt="md"
+            size="lg"
             radius="md"
             onClick={() => setModalOpen(true)}
           >
+            <IconShoppingCart size={20} style={{ marginRight: 8 }} />
             Adicionar ao carrinho
           </Button>
 
@@ -128,10 +150,12 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
             variant="filled"
             color="yellow"
             fullWidth
-            mt="md"
+            mt="xs"
+            size="lg"
             radius="md"
             onClick={() => handleEdit(product._id)}
           >
+            <IconPencil size={20} style={{ marginRight: 8 }} />
             Editar
           </Button>
         </Flex>

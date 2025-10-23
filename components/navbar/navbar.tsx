@@ -2,37 +2,75 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { IconMoonStars, IconSun } from '@tabler/icons-react';
+// MUDANÇA 1: Importar 'usePathname' do 'next/navigation'
+import { usePathname } from 'next/navigation';
+import {
+  IconBasketOff,
+  IconCalendarDollar,
+  IconCalendarEvent,
+  IconHome,
+  IconMoonStars,
+  IconPackage,
+  IconReport,
+  IconSettings,
+  IconShoppingCart,
+  IconSun,
+  IconUsers,
+} from '@tabler/icons-react';
 import {
   ActionIcon,
   AppShell,
+  Box,
+  NavLink,
   ScrollArea,
   Stack,
   Title,
   Tooltip,
   useMantineColorScheme,
 } from '@mantine/core';
-import classes from './style.module.css';
+import { Logo } from '../icons/logo';
 
 interface NavbarProps {
   toggle: () => void;
 }
 
 const linksMockdata = [
-  { to: 'sales', label: 'Vendas' },
-  { to: 'clients', label: 'Clientes' },
-  { to: 'products', label: 'Produtos' },
-  { to: 'suppliers', label: 'Fornecedores' },
-  { to: 'abandoned-carts', label: 'Carrinhos Abandonados' },
-  { to: 'available-days-and-times', label: 'Dias e Horários Disponíveis' },
-  { to: 'config', label: 'Configurações' },
+  { to: 'dashboard', label: 'Dashboard', icon: IconHome },
+  {
+    label: 'Loja',
+    icon: IconShoppingCart,
+    links: [
+      { to: 'sales', label: 'Vendas' },
+      { to: 'products', label: 'Produtos' },
+      { to: 'abandoned-carts', label: 'Carrinhos Abandonados', icon: IconBasketOff },
+    ],
+  },
+  {
+    label: 'Pessoas',
+    icon: IconUsers,
+    links: [
+      { to: 'clients', label: 'Clientes' },
+      { to: 'suppliers', label: 'Fornecedores', icon: IconPackage },
+    ],
+  },
+  {
+    label: 'Configurações',
+    icon: IconSettings,
+    links: [
+      { to: 'availability/create', label: 'Dias e Horários', icon: IconCalendarEvent },
+      { to: 'appointment/create', label: 'Agendamentos', icon: IconCalendarDollar },
+    ],
+  },
+  { to: 'reports', label: 'Relatórios', icon: IconReport },
 ];
 
 export default function NavBar({ toggle }: NavbarProps) {
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState('Dashboard');
-  const [activeLink, setActiveLink] = useState('Produtos');
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+
+  // MUDANÇA 2: Usar 'usePathname()' em vez de 'useRouter()'
+  const pathname = usePathname(); // Hook do App Router para ler a URL
 
   useEffect(() => {
     setMounted(true);
@@ -40,20 +78,50 @@ export default function NavBar({ toggle }: NavbarProps) {
 
   if (!mounted) return null;
 
-  const links = linksMockdata.map((link) => (
-    <Link
-      key={link.label}
-      href={`/backoffice/${link.to.toLowerCase()}`}
-      className={classes.link}
-      data-active={activeLink === link.label || undefined}
-      onClick={() => {
-        toggle();
-        setActiveLink(link.label);
-      }}
-    >
-      {link.label}
-    </Link>
-  ));
+  const links = linksMockdata.map((item) => {
+    const baseHref = '/backoffice';
+
+    if (item.links) {
+      // MUDANÇA 3: Usar 'pathname' em vez de 'router.pathname'
+      const isParentActive = item.links.some((link) => pathname === `${baseHref}/${link.to}`);
+
+      return (
+        <NavLink
+          key={item.label}
+          label={item.label}
+          leftSection={<item.icon size="1rem" stroke={1.5} />}
+          defaultOpened={isParentActive}
+          childrenOffset={28}
+        >
+          {item.links.map((link) => (
+            <NavLink
+              key={link.label}
+              label={link.label}
+              leftSection={link.icon ? <link.icon size="1rem" stroke={1.5} /> : undefined}
+              component={Link}
+              href={`${baseHref}/${link.to}`}
+              // MUDANÇA 4: Usar 'pathname' em vez de 'router.pathname'
+              active={pathname === `${baseHref}/${link.to}`}
+              onClick={toggle}
+            />
+          ))}
+        </NavLink>
+      );
+    }
+
+    return (
+      <NavLink
+        key={item.label}
+        label={item.label}
+        leftSection={<item.icon size="1rem" stroke={1.5} />}
+        component={Link}
+        href={`${baseHref}/${item.to}`}
+        // MUDANÇA 5: Usar 'pathname' em vez de 'router.pathname'
+        active={pathname === `${baseHref}/${item.to}`}
+        onClick={toggle}
+      />
+    );
+  });
 
   return (
     <AppShell.Navbar p="lg">

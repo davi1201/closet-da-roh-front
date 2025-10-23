@@ -1,0 +1,16 @@
+.card {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: var(--mantine-shadow-md);
+  }
+}
+
+.value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+}

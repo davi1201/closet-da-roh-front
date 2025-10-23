@@ -49,6 +49,7 @@ interface ProductVariantItemProps {
   form: any;
   availableColors: typeof PRODUCT_COLORS;
   availableSizes: typeof PRODUCT_SIZES;
+  profitMargin: string;
 }
 
 const ProductVariantItem = ({
@@ -57,6 +58,7 @@ const ProductVariantItem = ({
   index,
   availableColors,
   availableSizes,
+  profitMargin,
 }: ProductVariantItemProps) => {
   const handleBuyPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
@@ -69,7 +71,7 @@ const ProductVariantItem = ({
     const numericBuyPriceInCents = parseFloat(onlyDigits);
 
     if (!isNaN(numericBuyPriceInCents)) {
-      const numericSalePrice = numericBuyPriceInCents * 2.5;
+      const numericSalePrice = numericBuyPriceInCents * parseFloat(profitMargin);
 
       form.setFieldValue(`${listKey}.${index}.sale_price`, maskCurrency(numericSalePrice));
     } else {
@@ -79,16 +81,16 @@ const ProductVariantItem = ({
   return (
     <>
       <Grid key={index} align="flex-end">
-        <Grid.Col span={{ base: 6, sm: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 3 }}>
           <Select
             withAsterisk
             label="Cor"
             placeholder="Selecione a cor"
-            data={availableColors}
+            data={PRODUCT_COLORS}
             {...form.getInputProps(`${listKey}.${index}.color`)}
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 6, sm: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 3 }}>
           <Select
             withAsterisk
             label="Tamanho"
@@ -97,16 +99,17 @@ const ProductVariantItem = ({
             {...form.getInputProps(`${listKey}.${index}.size`)}
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 6, sm: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 3 }}>
           <TextInput
             withAsterisk
             label="Preço Compra"
+            inputMode="numeric"
             placeholder="R$ 0,00"
             {...form.getInputProps(`${listKey}.${index}.buy_price`)}
             onChange={handleBuyPriceChange}
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 6, sm: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 3 }}>
           <TextInput
             disabled
             withAsterisk
@@ -124,21 +127,23 @@ const ProductVariantItem = ({
           paddingBottom: '16px',
         }}
       >
-        <Grid.Col span={{ base: 6, sm: 2 }}>
+        <Grid.Col span={{ base: 12, sm: 2 }}>
           <TextInput
             withAsterisk
             label="Quantidade"
             type="number"
+            inputMode="numeric"
             placeholder="0"
             value={form.values[listKey][index]?.quantity ?? ''}
             onChange={(e) => form.setFieldValue(`${listKey}.${index}.quantity`, e.target.value)}
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 6, sm: 2 }}>
+        <Grid.Col span={{ base: 12, sm: 2 }}>
           <TextInput
             withAsterisk
             label="Estoque Mínimo"
             type="number"
+            inputMode="numeric"
             placeholder="0"
             {...form.getInputProps(`${listKey}.${index}.minimum_stock`)}
             value={form.values[listKey][index]?.minimum_stock ?? ''}
@@ -167,6 +172,15 @@ const ProductVariantItem = ({
 export default function ProductForm({ initialValues, onSubmit, isLoading }: ProductFormProps) {
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
   const [isImagesInitialized, setIsImagesInitialized] = useState(false);
+  const [profitMargin, setProfitMargin] = useState('2.0');
+
+  const PROFIT_MARGIN_OPTIONS = [
+    { label: '100%', value: '2' },
+    { label: '150%', value: '2.5' },
+    { label: '200%', value: '3' },
+    { label: '250%', value: '3.5' },
+    { label: '300%', value: '4' },
+  ];
 
   const form = useForm<ProductFormValues>({
     initialValues: {
@@ -183,7 +197,7 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
           buy_price: '',
           sale_price: '',
           quantity: 1,
-          minimum_stock: 1,
+          minimum_stock: 0,
         },
       ],
       ...initialValues,
@@ -277,6 +291,7 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
         index={index}
         availableColors={availableColors}
         availableSizes={availableSizes}
+        profitMargin={profitMargin}
       />
     );
   });
@@ -302,7 +317,7 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
       buy_price: newBuyPrice, // Usa o preço copiado
       sale_price: newSalePrice, // Usa o preço copiado
       quantity: quantityDefault,
-      minimum_stock: 1,
+      minimum_stock: 0,
     });
   };
   // ##### FIM DA CORREÇÃO #####
@@ -310,13 +325,33 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
   return (
     <form onSubmit={form.onSubmit(handleSubmit)} style={{ width: '100%' }}>
       <BarcodeScannerIOSFallback onChange={(code) => form.setFieldValue('code', code)} />
+
       <Stack gap="md">
+        <Grid>
+          <Grid.Col span={{ base: 12, sm: 3 }}>
+            <Select
+              label="Margem de Lucro"
+              placeholder="Selecione a margem de lucro"
+              data={PROFIT_MARGIN_OPTIONS}
+              value={profitMargin}
+              onChange={(value) => {
+                for (let index = 0; index < form.values.variants.length; index++) {
+                  form.setFieldValue(`variants.${index}.buy_price`, '');
+                  form.setFieldValue(`variants.${index}.sale_price`, '');
+                }
+
+                setProfitMargin(value || '2.5');
+              }}
+            />
+          </Grid.Col>
+        </Grid>
         <Grid>
           <Grid.Col span={{ base: 12, md: 2 }}>
             <TextInput
               withAsterisk
               label="Código"
               type="number"
+              inputMode="numeric"
               placeholder="Código do produto"
               {...form.getInputProps('code')}
             />

@@ -21,7 +21,7 @@ export const createAvailabilitySlots = async (
 ): Promise<Availability[]> => {
   try {
     // A rota é /admin/availability conforme definimos no backend
-    const response = await api.post<Availability[]>('/admin/availability', slotsData);
+    const response = await api.post<Availability[]>('/availability', slotsData);
     return response.data;
   } catch (error) {
     console.error('Erro ao criar slots de disponibilidade:', error);

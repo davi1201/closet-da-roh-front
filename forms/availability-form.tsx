@@ -50,7 +50,7 @@ export default function AdminAvailabilityForm() {
 
   const form = useForm<AvailabilityFormValues>({
     initialValues: {
-      timeRanges: [{ startTime: '09:00', endTime: '12:00' }],
+      timeRanges: [{ startTime: '09:00', endTime: '10:30' }],
       selectedDates: [],
     },
     validate: {
@@ -139,10 +139,6 @@ export default function AdminAvailabilityForm() {
 
     const slotsToCreate = generateSlots();
 
-    console.log(slotsToCreate);
-
-    return;
-
     if (error) return;
     if (slotsToCreate.length === 0) {
       notifications.show({ color: 'orange', title: 'Atenção', message: 'Nenhum horário gerado.' });
@@ -192,11 +188,12 @@ export default function AdminAvailabilityForm() {
       />
       <ActionIcon
         color="red"
+        size="lg"
         variant="light"
         onClick={() => form.removeListItem('timeRanges', index)}
         disabled={form.values.timeRanges.length <= 1}
         title="Remover bloco de horário"
-        style={{ alignSelf: 'flex-end', marginBottom: '4px' }}
+        style={{ alignSelf: 'flex-end', marginBottom: 'px' }}
       >
         <IconTrash size={18} />
       </ActionIcon>

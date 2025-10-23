@@ -16,14 +16,14 @@ import Providers from './providers'; // Importa o novo componente Providers
 // METADATA - Permanece aqui (Server Component)
 // ----------------------------------------------------
 export const metadata: Metadata = {
-  title: 'Camarim da Roh', // Seu título
+  title: 'Closet da Roh', // Seu título
   description: 'Agendamento de Visitas e Loja Online', // Sua descrição
 
   manifest: '/manifest.json',
   themeColor: '#FFFFFF', // Cor tema (ex: branco)
 
   appleWebApp: {
-    title: 'Camarim da Roh',
+    title: 'Closet da Roh',
     statusBarStyle: 'default', // Ou 'black', 'black-translucent'
     capable: true,
   },

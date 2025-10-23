@@ -49,7 +49,7 @@ export default function CreateProduct() {
         buy_price: '',
         sale_price: '',
         quantity: 1,
-        minimum_stock: 1,
+        minimum_stock: 0,
         sku: null,
       },
     ],

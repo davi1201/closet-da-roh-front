@@ -1,4 +1,5 @@
 export function maskPhone(value: string) {
+  if (!value || value === undefined) return '';
   return value
     .replace(/\D/g, '')
     .replace(/^(\d{2})(\d)/, '($1) $2')
@@ -11,6 +12,18 @@ export function maskZipCode(value: string) {
     .replace(/\D/g, '')
     .replace(/^(\d{5})(\d)/, '$1-$2')
     .slice(0, 9);
+}
+
+export function maskCnpj(value: string) {
+  if (!value || value === undefined) return '';
+
+  return value
+    .replace(/\D/g, '')
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2')
+    .slice(0, 18);
 }
 
 export function maskCurrency(value: string | number) {

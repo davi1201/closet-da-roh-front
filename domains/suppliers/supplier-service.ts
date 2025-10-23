@@ -23,9 +23,9 @@ export const getAllSuppliers = async (): Promise<SupplierResponse[]> => {
   }
 };
 
-export const getSupplierById = async (id: string): Promise<Supplier> => {
+export const getSupplierById = async (id: string): Promise<SupplierResponse> => {
   try {
-    const response = await api.get<Supplier>(`/suppliers/${id}`);
+    const response = await api.get<SupplierResponse>(`/suppliers/${id}`);
     return response.data;
   } catch (error) {
     console.error('Erro ao obter fornecedor:', error);
@@ -35,10 +35,10 @@ export const getSupplierById = async (id: string): Promise<Supplier> => {
 
 export const updateSupplier = async (
   id: string,
-  supplierData: Partial<Supplier>
-): Promise<Supplier> => {
+  supplierData: Partial<SupplierResponse>
+): Promise<SupplierResponse> => {
   try {
-    const response = await api.put<Supplier>(`/suppliers/${id}`, supplierData);
+    const response = await api.put<SupplierResponse>(`/suppliers/${id}`, supplierData);
     return response.data;
   } catch (error) {
     console.error('Erro ao atualizar fornecedor:', error);
