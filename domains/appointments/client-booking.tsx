@@ -326,7 +326,6 @@ export default function ClientBookingPage() {
           state: address.state,
         });
         // Opcional: Mover o foco para o campo 'Número'
-        // document.getElementById('address-number-input')?.focus();
       } catch (error: any) {
         setAddressError(error.message);
         // Opcional: Limpar campos se o CEP for inválido/não encontrado
