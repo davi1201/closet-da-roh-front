@@ -1,7 +1,5 @@
-// src/app/providers.tsx (NOVO ARQUIVO - Client Component)
 'use client';
 
-// ESSENCIAL: Marca este como um Client Component
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'; // Opcional

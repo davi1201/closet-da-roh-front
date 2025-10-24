@@ -1,6 +1,4 @@
 // src/app/layout.tsx (CORRIGIDO - Server Component)
-'use client';
-
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/carousel/styles.css';
