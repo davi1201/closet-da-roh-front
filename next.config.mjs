@@ -4,7 +4,7 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 // 1. Definição do Wrapper PWA
 const withPWA = createWithPWA({
   dest: 'public',
-  disable: true,
+  disable: process.env.NODE_ENV === 'development', // Desabilita em dev
   register: true, // Registra o Service Worker
   skipWaiting: true, // Garante ativação imediata
   // swSrc: 'firebase-messaging-sw.js', // Aponta para o SW customizado
