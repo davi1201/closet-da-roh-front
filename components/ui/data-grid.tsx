@@ -1,3 +1,5 @@
+'use client';
+
 import { IconAlertCircle, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import {
   ColumnDef,
