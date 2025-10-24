@@ -1,7 +1,12 @@
 'use client';
 
-import ListAllAbandonedCarts from '@/domains/abandoned-carts/list-all-abandoned-carts';
+import dynamic from 'next/dynamic';
 
-export default function AbandonanedCartsPage() {
-  return <ListAllAbandonedCarts />;
+const ListAbandonedCarts = dynamic(
+  () => import('@/domains/abandoned-carts/list-all-abandoned-carts'),
+  { ssr: false }
+);
+
+export default function AbandonedCartsPage() {
+  return <ListAbandonedCarts />;
 }
