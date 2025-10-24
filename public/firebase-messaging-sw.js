@@ -1,36 +1,47 @@
-// Importa scripts do Firebase (necessário)
+// public/firebase-messaging-sw.js
+
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Cole aqui sua configuração do Firebase (igual ao lib/firebase.ts)
+// --- CORREÇÃO OBRIGATÓRIA ---
+// Cole os valores REAIS do seu Firebase config aqui
 const firebaseConfig = {
-  apiKey: 'AIzaSyA0W2KehZ4IVXm9cxTO-Q4btEgF7bs53uk',
-  authDomain: 'closet-da-roh.firebaseapp.com',
-  projectId: 'closet-da-roh',
-  storageBucket: 'closet-da-roh.firebasestorage.app',
-  messagingSenderId: '6502806455',
-  appId: 'G-7ELWZD2ZQS',
+  apiKey: 'AIzaSyA0W2KehZ4IVXm9cxTO-Q4btEgF7bs53uk', // Seu valor real
+  authDomain: 'closet-da-roh.firebaseapp.com', // Seu valor real
+  projectId: 'closet-da-roh', // Seu valor real
+  storageBucket: 'closet-da-roh.firebasestorage.app', // Seu valor real
+  messagingSenderId: '6502806455', // Seu valor real
+  appId: '1:6502806455:web:7d8ed24f5ca038e3056e32', // <-- Use o Web App ID CORRETO
+  // O measurementId (G-...) não é necessário aqui
 };
+// --- FIM DA CORREÇÃO ---
 
-// Log para depuração (opcional, pode remover depois)
 console.log('[SW] Firebase Config:', firebaseConfig);
 
-// Inicializa o Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('[SW] Firebase App inicializado.');
 
-// Obtém a instância do Messaging
-const messaging = firebase.messaging();
+  const messaging = firebase.messaging();
+  console.log('[SW] Firebase Messaging inicializado.');
 
-// (Opcional) Manipulador para notificações em SEGUNDO PLANO
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[SW] Received background message ', payload);
+    const notificationTitle = payload?.notification?.title || 'Nova Notificação';
+    const notificationOptions = {
+      body: payload?.notification?.body || 'Teste de notificação em segundo plano.',
+      icon: payload?.notification?.image || '',
+    };
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+  console.log('[SW] Listener onBackgroundMessage configurado.');
+} catch (error) {
+  console.error('[SW] Erro ao inicializar Firebase:', error);
+}
 
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/icon-192x192.png', // Ícone do seu PWA
-  };
-
-  // Mostra a notificação usando a API de Service Worker
-  self.registration.showNotification(notificationTitle, notificationOptions);
+// Opcional: Logs de ciclo de vida para debug
+self.addEventListener('install', () => console.log('[SW] Instalando...'));
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Ativado!');
+  event.waitUntil(clients.claim());
 });

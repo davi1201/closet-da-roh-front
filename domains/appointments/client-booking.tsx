@@ -36,6 +36,7 @@ import { notifications } from '@mantine/notifications';
 import 'dayjs/locale/pt-br';
 
 import utc from 'dayjs/plugin/utc';
+import { useRouter } from 'next/navigation';
 import {
   bookAppointment,
   getAvailableDaysInMonth,
@@ -79,6 +80,7 @@ interface ClientDetailsForm extends Omit<BookAppointmentPayload, 'slotId' | 'cli
 }
 
 export default function ClientBookingPage() {
+  const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
   // Usar dayjs para estado interno, converter para Date apenas para o DatePicker
   const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(dayjs());
@@ -205,6 +207,7 @@ export default function ClientBookingPage() {
       // Resetar estados após sucesso
       form.reset();
       setSelectedSlotId(null);
+      router.push(`/public/products/${form.values.clientPhone}`); // Exemplo de redirecionamento
       // Opcional: voltar para o primeiro passo ou resetar a data
       // setActiveStep(0);
       // setSelectedDate(dayjs());

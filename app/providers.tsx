@@ -24,7 +24,7 @@ export default function Providers({ children }: ProvidersProps) {
       {/* MantineProvider SÓ pode existir em Client Components */}
       <MantineProvider theme={theme} defaultColorScheme="auto">
         {/* Notifications SÓ pode existir em Client Components */}
-        <Notifications />
+        <Notifications position="top-center" />
         {children} {/* Renderiza o conteúdo da página envolvido pelos providers */}
       </MantineProvider>
 

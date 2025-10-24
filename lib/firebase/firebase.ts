@@ -2,16 +2,24 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getMessaging } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: 'AIzaSyA0W2KehZ4IVXm9cxTO-Q4btEgF7bs53uk',
+  authDomain: 'closet-da-roh.firebaseapp.com',
+  projectId: 'closet-da-roh',
+  storageBucket: 'closet-da-roh.firebasestorage.app',
+  messagingSenderId: '6502806455',
+  appId: '1:6502806455:web:7d8ed24f5ca038e3056e32',
 };
 
-// Inicializa o Firebase (evita inicialização dupla no HMR)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+// Adiciona verificação extra para messaging
+let messaging = null;
+if (typeof window !== 'undefined') {
+  try {
+    messaging = getMessaging(app);
+    // console.log('[Firebase Client] Messaging inicializado');
+  } catch (error) {
+    console.error('[Firebase Client] Erro ao inicializar Messaging:', error);
+  }
+}
 
-export { app, messaging };
+export { app, messaging }; // Exporte a variável messaging (pode ser null)
