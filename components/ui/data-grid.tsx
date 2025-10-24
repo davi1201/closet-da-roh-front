@@ -9,16 +9,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import {
-  Alert,
-  Center,
-  Group,
-  Pagination,
-  ScrollArea,
-  Table,
-  Tooltip,
-  useMantineTheme,
-} from '@mantine/core';
+import { Alert, Center, Group, Pagination, ScrollArea, Table, Tooltip } from '@mantine/core';
 
 type DataGridProps<T> = {
   columns: ColumnDef<T>[] & { actions?: ColumnDef<T>; rowBgColor?: string }[];
@@ -37,7 +28,8 @@ export function DataGrid<T>({
   onRowClicked,
   headerTitle,
 }: DataGridProps<T>) {
-  const theme = useMantineTheme();
+  // REMOVIDO: const theme = useMantineTheme();
+  // Essa linha estava causando o erro, pois useMantineTheme() acessa document
 
   const table = useReactTable({
     columns,
