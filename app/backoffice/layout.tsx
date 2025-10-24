@@ -23,6 +23,8 @@ import { AnimatedSplashScreen } from '@/components/ui/splash-screen';
 import { usePushNotifications } from '@/hooks/use-push-notification';
 import { useAuthStore, useCartModalStore, useCartStore } from '@/store';
 
+export const dynamic = 'force-dynamic';
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [opened, { toggle }] = useDisclosure();

@@ -1,22 +1,17 @@
-import createWithPWA from '@ducanh2912/next-pwa'; // Importamos a função default com um nome
+import createWithPWA from '@ducanh2912/next-pwa';
 import bundleAnalyzer from '@next/bundle-analyzer';
 
-// 1. Definição do Wrapper PWA
 const withPWA = createWithPWA({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development', // Desabilita em dev
-  register: true, // Registra o Service Worker
-  skipWaiting: true, // Garante ativação imediata
-  // swSrc: 'firebase-messaging-sw.js', // Aponta para o SW customizado
-  // ... outras configurações Workbox
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
 });
 
-// 2. Definição do Wrapper Bundle Analyzer
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-// 3. Configuração Base do Next.js
 const nextConfig = {
   reactStrictMode: false,
   eslint: {
@@ -25,7 +20,10 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
   },
+  transpilePackages: ['@tabler/icons-react'],
+
+  // ADICIONE ISTO para desabilitar SSG em rotas dinâmicas
+  output: 'standalone', // ou remova se não usar
 };
 
-// 4. Encapsulamento Final: Aplique os wrappers em cadeia
 export default withPWA(withBundleAnalyzer(nextConfig));
