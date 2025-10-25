@@ -8,12 +8,9 @@ const withPWA = createWithPWA({
   skipWaiting: true,
   // CRÍTICO: Usa o worker customizado que integra Firebase + PWA
   swSrc: 'worker/index.ts',
-  swDest: 'public/sw.js',
+  // swDest: 'public/sw.js',
   // Configurações adicionais recomendadas
   reloadOnOnline: true, // Recarrega quando voltar online
-  fallbacks: {
-    document: '/offline', // Página offline (opcional - crie se quiser)
-  },
   cacheOnFrontEndNav: true, // Cache em navegação
   aggressiveFrontEndNavCaching: false,
   cacheStartUrl: true,
