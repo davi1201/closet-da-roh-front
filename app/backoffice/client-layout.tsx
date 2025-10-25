@@ -29,7 +29,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isCartModalOpen = useCartModalStore((state) => state.isCartModalOpen);
   const openCart = useCartModalStore((state) => state.openCartModal);
   const closeCart = useCartModalStore((state) => state.closeCartModal);
-  const { requestPermission, permissionStatus } = usePushNotifications();
+  const { requestPermission, permissionStatus, isClient } = usePushNotifications();
 
   const userInfo = useAuthStore((state) => state.userInfo);
   const router = useRouter();
@@ -106,28 +106,33 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </AppShell.Navbar>
 
         <AppShell.Main>
-          {permissionStatus === 'default' && (
-            <Alert
-              title="Notificações"
-              color="blue"
-              variant="light"
-              withCloseButton
-              closeButtonLabel="Fechar"
-              mb="md"
-            >
-              <Text>Receba notificações sobre agendamentos e estoque.</Text>
-              <Button onClick={requestPermission} size="xs" mt="xs">
-                Ativar Notificações
-              </Button>
-            </Alert>
-          )}
-          {permissionStatus === 'denied' && (
-            <Alert title="Notificações Bloqueadas" color="yellow" variant="light" mb="md">
-              <Text size="sm">
-                Você bloqueou as notificações. Para reativá-las, verifique as configurações do seu
-                navegador.
-              </Text>
-            </Alert>
+          {/* Só renderiza alerts após hidratação no cliente */}
+          {isClient && (
+            <>
+              {permissionStatus === 'default' && (
+                <Alert
+                  title="Notificações"
+                  color="blue"
+                  variant="light"
+                  withCloseButton
+                  closeButtonLabel="Fechar"
+                  mb="md"
+                >
+                  <Text>Receba notificações sobre agendamentos e estoque.</Text>
+                  <Button onClick={requestPermission} size="xs" mt="xs">
+                    Ativar Notificações
+                  </Button>
+                </Alert>
+              )}
+              {permissionStatus === 'denied' && (
+                <Alert title="Notificações Bloqueadas" color="yellow" variant="light" mb="md">
+                  <Text size="sm">
+                    Você bloqueou as notificações. Para reativá-las, verifique as configurações do
+                    seu navegador.
+                  </Text>
+                </Alert>
+              )}
+            </>
           )}
           <Flex direction="column" style={{ minHeight: '100%' }}>
             {children}

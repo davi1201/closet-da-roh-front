@@ -1,29 +1,44 @@
+'use client';
+
 import React, { useCallback, useEffect, useState } from 'react';
-// --- AJUSTE 1: Importe os ícones necessários ---
 import { IconAlertCircle, IconBell, IconCalendarEvent, IconHeart } from '@tabler/icons-react';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { notifications } from '@mantine/notifications';
 import api from '@/lib/api';
-import { app } from '@/lib/firebase/firebase'; // Verifique este caminho
+import { app } from '@/lib/firebase/firebase';
 import { useAuthStore } from '@/store';
 
 const VAPID_KEY =
   'BNI_MjLnBVTetqu5mDnqliEdMZ05KbQqVzZwWknxeLPA6A19DZ0kvn0yUJ3AUO-V4ljfRBb_mZYj3HxWdPR93ME';
 
 export function usePushNotifications() {
-  const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
-    typeof window !== 'undefined' ? Notification.permission : 'default'
-  );
+  const [isClient, setIsClient] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const userInfo = useAuthStore((state) => state.userInfo);
 
+  // Garante que está no cliente antes de fazer qualquer coisa
+  useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPermissionStatus(Notification.permission);
+    }
+  }, []);
+
   const setupToken = useCallback(async () => {
+    // Proteção: só executa no cliente
+    if (!isClient || typeof window === 'undefined') {
+      console.log('[SetupToken] Aguardando ambiente cliente...');
+      return;
+    }
+
     if (!VAPID_KEY) {
       console.error('Chave VAPID do Firebase não configurada!');
       return;
     }
-    if (typeof window === 'undefined' || !navigator.serviceWorker) {
-      console.warn('Service Worker não suportado ou ambiente de servidor.');
+
+    if (!navigator.serviceWorker) {
+      console.warn('Service Worker não suportado.');
       return;
     }
 
@@ -84,11 +99,11 @@ export function usePushNotifications() {
     } catch (error) {
       console.error('[SetupToken] Erro durante setupToken:', error);
     }
-  }, [userInfo]);
+  }, [userInfo, isClient]);
 
   const requestPermission = useCallback(async () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      console.error('Este navegador não suporta notificações.');
+    if (!isClient || typeof window === 'undefined' || !('Notification' in window)) {
+      console.error('Este navegador não suporta notificações ou ainda não está no cliente.');
       return;
     }
 
@@ -100,9 +115,12 @@ export function usePushNotifications() {
     } catch (error) {
       console.error('[RequestPermission] Erro ao solicitar permissão:', error);
     }
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
+    // Só executa se estiver no cliente
+    if (!isClient) return;
+
     console.log('[Effect] Verificando permissão:', permissionStatus);
     if (permissionStatus === 'granted') {
       console.log('[Effect] Permissão concedida, chamando setupToken...');
@@ -116,11 +134,9 @@ export function usePushNotifications() {
         unsubscribe = onMessage(messagingInstance, (payload) => {
           console.log('[OnMessage] Mensagem recebida em foreground: ', payload);
 
-          // --- AJUSTE 2: Lógica condicional para ícone e cor ---
-          let notificationIcon: React.ReactNode = React.createElement(IconBell, { size: 18 }); // Ícone padrão
-          let notificationColor = 'blue'; // Cor padrão
+          let notificationIcon: React.ReactNode = React.createElement(IconBell, { size: 18 });
+          let notificationColor = 'blue';
 
-          // Verifica o 'type' dentro do 'data' payload
           switch (payload.data?.type) {
             case 'NEW_APPOINTMENT':
               notificationIcon = React.createElement(IconCalendarEvent, { size: 18 });
@@ -134,27 +150,18 @@ export function usePushNotifications() {
               notificationIcon = React.createElement(IconAlertCircle, { size: 18 });
               notificationColor = 'red';
               break;
-            // Adicione mais casos conforme necessário
             default:
-              // Mantém os padrões se o tipo não for reconhecido
               break;
           }
 
           notifications.show({
             title: payload.notification?.title || 'Nova Notificação',
             message: payload.notification?.body || '',
-            color: notificationColor, // Usa a cor definida
-            icon: notificationIcon, // Usa o ícone definido
+            color: notificationColor,
+            icon: notificationIcon,
             autoClose: false,
             withCloseButton: true,
-            // (Opcional) Adicionar onClick para levar à página relevante
-            // onClick: () => {
-            //   if (payload.data?.url) {
-            //      window.location.href = payload.data.url;
-            //   }
-            // }
           });
-          // --- FIM DO AJUSTE 2 ---
         });
       } catch (error) {
         console.error('[OnMessage] Erro ao configurar listener:', error);
@@ -167,7 +174,7 @@ export function usePushNotifications() {
         unsubscribe();
       }
     };
-  }, [permissionStatus, setupToken]);
+  }, [permissionStatus, setupToken, isClient]);
 
-  return { requestPermission, permissionStatus, fcmToken };
+  return { requestPermission, permissionStatus, fcmToken, isClient };
 }
