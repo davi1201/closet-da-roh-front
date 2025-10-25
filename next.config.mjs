@@ -6,6 +6,17 @@ const withPWA = createWithPWA({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  // CRÍTICO: Usa o worker customizado que integra Firebase + PWA
+  swSrc: 'worker/index.ts',
+  swDest: 'public/sw.js',
+  // Configurações adicionais recomendadas
+  reloadOnOnline: true, // Recarrega quando voltar online
+  fallbacks: {
+    document: '/offline', // Página offline (opcional - crie se quiser)
+  },
+  cacheOnFrontEndNav: true, // Cache em navegação
+  aggressiveFrontEndNavCaching: false,
+  cacheStartUrl: true,
 });
 
 const withBundleAnalyzer = bundleAnalyzer({
@@ -21,9 +32,7 @@ const nextConfig = {
     optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
   },
   transpilePackages: ['@tabler/icons-react'],
-
-  // ADICIONE ISTO para desabilitar SSG em rotas dinâmicas
-  output: 'standalone', // ou remova se não usar
+  output: 'standalone',
 };
 
 export default withPWA(withBundleAnalyzer(nextConfig));

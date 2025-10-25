@@ -33,20 +33,21 @@ export function usePushNotifications() {
     }
 
     if (!VAPID_KEY) {
-      console.error('Chave VAPID do Firebase não configurada!');
+      console.error('[SetupToken] Chave VAPID do Firebase não configurada!');
       return;
     }
 
     if (!navigator.serviceWorker) {
-      console.warn('Service Worker não suportado.');
+      console.warn('[SetupToken] Service Worker não suportado.');
       return;
     }
 
     console.log('[SetupToken] Iniciando...');
 
     try {
+      // ✅ MUDANÇA CRÍTICA: Agora usa /sw.js (gerado pelo PWA + Firebase)
       const registration = await navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
+        .register('/sw.js')
         .then((r) => {
           console.log('[SetupToken] SW registrado com sucesso');
           return r;
@@ -93,7 +94,7 @@ export function usePushNotifications() {
         }
       } else {
         console.warn(
-          '[SetupToken] Não foi possível obter o token FCM. Permissão pode ter sido revogada ou SW não está ativo?'
+          '[SetupToken] Não foi possível obter o token FCM. Permissão pode ter sido revogada.'
         );
       }
     } catch (error) {
@@ -103,7 +104,7 @@ export function usePushNotifications() {
 
   const requestPermission = useCallback(async () => {
     if (!isClient || typeof window === 'undefined' || !('Notification' in window)) {
-      console.error('Este navegador não suporta notificações ou ainda não está no cliente.');
+      console.error('[RequestPermission] Este navegador não suporta notificações.');
       return;
     }
 
@@ -112,6 +113,17 @@ export function usePushNotifications() {
       const status = await Notification.requestPermission();
       console.log('[RequestPermission] Resultado:', status);
       setPermissionStatus(status);
+
+      // Se concedeu, mostra notificação de confirmação
+      if (status === 'granted') {
+        notifications.show({
+          title: '✅ Notificações Ativadas!',
+          message: 'Você receberá atualizações sobre agendamentos e produtos.',
+          color: 'green',
+          icon: React.createElement(IconBell, { size: 18 }),
+          autoClose: 5000,
+        });
+      }
     } catch (error) {
       console.error('[RequestPermission] Erro ao solicitar permissão:', error);
     }
@@ -131,12 +143,15 @@ export function usePushNotifications() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && app) {
       try {
         const messagingInstance = getMessaging(app);
+
+        // FOREGROUND: Mensagens quando o app está aberto
         unsubscribe = onMessage(messagingInstance, (payload) => {
-          console.log('[OnMessage] Mensagem recebida em foreground: ', payload);
+          console.log('[OnMessage] Mensagem recebida em FOREGROUND:', payload);
 
           let notificationIcon: React.ReactNode = React.createElement(IconBell, { size: 18 });
           let notificationColor = 'blue';
 
+          // Personaliza baseado no tipo
           switch (payload.data?.type) {
             case 'NEW_APPOINTMENT':
               notificationIcon = React.createElement(IconCalendarEvent, { size: 18 });
@@ -154,14 +169,36 @@ export function usePushNotifications() {
               break;
           }
 
+          // Exibe notificação in-app (Mantine)
           notifications.show({
             title: payload.notification?.title || 'Nova Notificação',
             message: payload.notification?.body || '',
             color: notificationColor,
             icon: notificationIcon,
-            autoClose: false,
+            autoClose: 8000,
             withCloseButton: true,
+            onClick: () => {
+              // Navega para URL se houver
+              if (payload.data?.url) {
+                window.location.href = payload.data.url;
+              }
+            },
           });
+
+          // OPCIONAL: Também exibe notificação nativa do navegador
+          // (mesmo com app aberto, se quiser redundância)
+          // Descomente as linhas abaixo se quiser notificação dupla:
+          /*
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(payload.notification?.title || 'Closet da Roh', {
+              body: payload.notification?.body || '',
+              icon: '/icon-192x192.png',
+              badge: '/icon-96x96.png',
+              tag: payload.data?.type || 'default',
+              data: payload.data,
+            });
+          }
+          */
         });
       } catch (error) {
         console.error('[OnMessage] Erro ao configurar listener:', error);
@@ -176,5 +213,43 @@ export function usePushNotifications() {
     };
   }, [permissionStatus, setupToken, isClient]);
 
-  return { requestPermission, permissionStatus, fcmToken, isClient };
+  // Função helper para testar notificação (útil para debug)
+  const testNotification = useCallback(() => {
+    if (!isClient || typeof window === 'undefined' || Notification.permission !== 'granted') {
+      console.warn('[TestNotification] Permissão não concedida');
+      notifications.show({
+        title: '❌ Permissão Negada',
+        message: 'Ative as notificações primeiro!',
+        color: 'red',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    // Notificação in-app
+    notifications.show({
+      title: '🧪 Notificação de Teste',
+      message: 'Se você vê isso, as notificações in-app estão funcionando!',
+      color: 'violet',
+      icon: React.createElement(IconBell, { size: 18 }),
+      autoClose: 5000,
+    });
+
+    // Notificação nativa
+    new Notification('🧪 Teste do PWA', {
+      body: 'Notificação nativa funcionando!',
+      icon: '/icon-192x192.png',
+      badge: '/icon-96x96.png',
+      tag: 'test',
+      data: { url: '/' },
+    });
+  }, [isClient]);
+
+  return {
+    requestPermission,
+    permissionStatus,
+    fcmToken,
+    isClient,
+    testNotification, // Exporta função de teste
+  };
 }
