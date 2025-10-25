@@ -6,9 +6,7 @@ import '@mantine/dates/styles.css';
 
 import React from 'react';
 import { Metadata } from 'next';
-import { ColorSchemeScript, MantineProvider } from '@mantine/core'; // Removido mantineHtmlProps, useState, QueryClientProvider daqui
-import { Notifications } from '@mantine/notifications'; // Removido daqui
-import { theme } from '../theme';
+import { ColorSchemeScript } from '@mantine/core'; // Removido mantineHtmlProps, useState, QueryClientProvider daqui
 import Providers from './providers'; // Importa o novo componente Providers
 
 // ----------------------------------------------------

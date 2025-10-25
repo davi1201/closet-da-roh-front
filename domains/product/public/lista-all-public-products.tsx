@@ -1,16 +1,16 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { IconCheck, IconCirclePlus } from '@tabler/icons-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Carousel } from '@mantine/carousel';
 import {
   Alert,
-  Badge,
-  Box,
-  Button,
   Card,
   Center,
+  Chip,
+  Flex,
+  Group,
   Image,
   Loader,
   SimpleGrid,
@@ -18,29 +18,29 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-// Importamos o service completo
-import {
-  getClientByPhone,
-  getProductsByClientId,
-  postInteraction,
-  removeInteraction,
-} from './public-products-service';
+import { PRODUCT_CATEGORIES } from '@/constants/product-categories';
+import { getAllProducts } from '../product-service';
+import { ProductActionButton } from './components/product-button-action';
+import { getClientByPhone, getProductsByClientId } from './public-products-service';
 
-// Tipo para o produto (agora com isSelected)
 interface ProductWithSelection {
   _id: string;
   name: string;
   images: { url: string }[];
   isSelected: boolean;
-  // ... outros campos do produto
+  category: string;
 }
 
 export default function ListaAllPublicProducts() {
   const params = useParams();
   const phone = params.phone as string;
-  const queryClient = useQueryClient();
 
-  // 1. Busca o Cliente
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  console.log(
+    phone !== undefined ? `Número de telefone: ${phone}` : 'Nenhum número de telefone fornecido'
+  );
+
   const {
     data: client,
     isLoading: isLoadingClient,
@@ -52,122 +52,126 @@ export default function ListaAllPublicProducts() {
     retry: false,
   });
 
-  // 2. Busca a lista de produtos JÁ MESCLADA (com 'isSelected')
   const {
     data: products = [],
     isLoading: isLoadingProducts,
     isError: isProductsError,
   } = useQuery<ProductWithSelection[]>({
-    queryKey: ['productsForSelection', client?._id],
+    queryKey: ['productsForSelection', client?._id, phone],
     //@ts-ignore
-    queryFn: () => getProductsByClientId(client._id),
-    enabled: !!client?._id,
-  });
-
-  // 3. Mutação para MARCAR (Criar 'like')
-  const selectMutation = useMutation({
-    mutationFn: postInteraction,
-    onSuccess: () => {
-      // Invalida o cache para forçar o refetch e atualizar a UI
-      queryClient.invalidateQueries({ queryKey: ['productsForSelection', client?._id] });
+    queryFn: () => {
+      if (client?._id) {
+        return getProductsByClientId(client._id);
+      }
+      // @ts-ignore
+      return getAllProducts();
     },
-    // (Adicione onError para notificação de erro)
+    enabled: true,
   });
 
-  // 4. Mutação para DESMARCAR (Deletar 'like')
-  const deselectMutation = useMutation({
-    mutationFn: removeInteraction,
-    onSuccess: () => {
-      // Invalida o cache para forçar o refetch
-      queryClient.invalidateQueries({ queryKey: ['productsForSelection', client?._id] });
-    },
-  });
+  const categories = useMemo(() => {
+    if (!products) return [];
+    // @ts-ignore
+    const allCategories = products.map((p) => p.category);
+    //@ts-ignore
+    return [...new Set(allCategories.filter(Boolean))];
+  }, [products]);
 
-  // 5. Handler de clique unificado
-  const handleToggleSelect = (product: ProductWithSelection) => {
-    if (!client) return;
-
-    if (product.isSelected) {
-      // Já está selecionado, então DESMARCA
-      deselectMutation.mutate({
-        clientId: client._id,
-        productId: product._id,
-      });
-    } else {
-      // Não está selecionado, então MARCA
-      selectMutation.mutate({
-        clientId: client._id,
-        productId: product._id,
-        interaction: 'liked',
-      });
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === '') {
+      return products;
     }
-  };
+    // @ts-ignore
+    return products.filter((p) => p.category === selectedCategory);
+  }, [products, selectedCategory]);
 
-  // Verifica se alguma mutação está ocorrendo
-  const isInteracting = selectMutation.isPending || deselectMutation.isPending;
-
-  // --- Estados de Renderização (Loading, Erros) ---
-  if (isLoadingClient || isLoadingProducts) {
+  if (isLoadingProducts) {
     return (
       <Center style={{ height: '100vh' }}>
         <Loader />
       </Center>
     );
   }
-  if (isClientError) {
+
+  if (phone && isClientError) {
     return (
-      <Center style={{ height: '100vh' }}>
-        <Alert color="red" title="Link Inválido">
-          Este link não é válido ou o cliente não foi encontrado.
+      <Center style={{ height: '100vh', padding: 'var(--mantine-spacing-lg)' }}>
+        <Alert color="yellow" title="Aviso">
+          Não foi possível identificar seu cadastro com este link. Você pode visualizar os produtos,
+          mas não poderá selecioná-los.
         </Alert>
       </Center>
     );
   }
-  if (!client) {
-    return (
-      <Center style={{ height: '100vh' }}>
-        <Alert color="red" title="Erro">
-          Não foi possível localizar os dados do cliente.
-        </Alert>
-      </Center>
-    );
-  }
+
   if (isProductsError) {
     return (
       <Center style={{ height: '100vh' }}>
         <Alert color="red" title="Erro">
-          Não foi possível carregar os produtos.
+          Não foi possível carregar os produtos. Tente novamente mais tarde.
         </Alert>
       </Center>
     );
   }
 
-  // --- Renderização da Lista de Produtos ---
   return (
     <Stack style={{ padding: 'var(--mantine-spacing-lg)' }}>
-      <Title order={2}>Olá, {client.name}!</Title>
-      <Text>
-        Selecione os produtos que você gostaria de ver na sua visita. Já pode marcar e desmarcar
-        quantas vezes quiser.
-      </Text>
+      {client ? (
+        <>
+          <Title order={2}>Olá, {client.name}!</Title>
+          <Text>
+            Selecione os produtos que você gostaria de ver na sua visita. Já pode marcar e desmarcar
+            quantas vezes quiser.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Flex direction="column" align="center">
+            <Title order={2}>Catálogo de Produtos</Title>
+            <Text c="dimmed">
+              {phone
+                ? 'Aguardando identificação...'
+                : 'Navegue pelo nosso catálogo de produtos disponíveis.'}
+            </Text>
+          </Flex>
+        </>
+      )}
+
+      {isLoadingClient && phone && (
+        <Alert color="blue" title="Carregando seus dados...">
+          Identificando seu cadastro...
+        </Alert>
+      )}
+
+      {categories.length > 0 && (
+        // @ts-ignore
+        <Chip.Group value={selectedCategory} onChange={(value) => setSelectedCategory(value || '')}>
+          <Group justify="center" mt="md" mb="lg">
+            <Chip value="" variant="outline" size="sm" radius="sm">
+              Todas
+            </Chip>
+            {categories.map((category) => (
+              <Chip key={category} value={category} variant="outline" size="sm" radius="sm">
+                {PRODUCT_CATEGORIES.find((cat) => cat.value === category)?.label.toUpperCase() ||
+                  category}
+              </Chip>
+            ))}
+          </Group>
+        </Chip.Group>
+      )}
 
       <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} mt="lg">
         {
-          //@ts-ignore
-          products.map((product) => (
+          // @ts-ignore
+          filteredProducts.map((product: ProductWithSelection) => (
             <Card key={product._id} shadow="sm" padding="lg" radius="md" withBorder>
               <Card.Section>
                 <Carousel height={360} withControls={product.images.length > 1}>
-                  {
-                    // @ts-ignore
-                    product.images.map((image) => {
-                      return (
-                        <Carousel.Slide key={image.url} style={{ cursor: 'pointer' }}>
-                          <Image src={image.url} height={360} alt={product.name} fit="cover" />
-                        </Carousel.Slide>
-                      );
-                    })
-                  }
+                  {product.images.map((image) => (
+                    <Carousel.Slide key={image.url} style={{ cursor: 'pointer' }}>
+                      <Image src={image.url} height={360} alt={product.name} fit="cover" />
+                    </Carousel.Slide>
+                  ))}
                 </Carousel>
               </Card.Section>
 
@@ -175,30 +179,24 @@ export default function ListaAllPublicProducts() {
                 {product.name.toUpperCase()}
               </Text>
 
-              <Button
-                fullWidth
-                mt="md"
-                radius="md"
-                variant={product.isSelected ? 'light' : 'filled'}
-                color={product.isSelected ? 'green' : 'blue'}
-                leftSection={
-                  product.isSelected ? <IconCheck size={16} /> : <IconCirclePlus size={16} />
+              <Text c="dimmed" size="xs" mt="xs" lineClamp={2}>
+                {
+                  //@ts-ignore
+                  product?.description
                 }
-                onClick={() => handleToggleSelect(product)}
-                loading={isInteracting} // Desativa todos os botões durante uma ação
-              >
-                {product.isSelected ? 'Selecionado' : 'Selecionar'}
-              </Button>
+              </Text>
+
+              <ProductActionButton product={product} client={client} />
             </Card>
           ))
         }
       </SimpleGrid>
 
       {
-        //@ts-ignore
-        products.length === 0 && (
+        // @ts-ignore
+        filteredProducts.length === 0 && (
           <Center style={{ height: '200px' }}>
-            <Text>Nenhum produto encontrado no momento.</Text>
+            <Text>Nenhum produto encontrado para esta categoria.</Text>
           </Center>
         )
       }

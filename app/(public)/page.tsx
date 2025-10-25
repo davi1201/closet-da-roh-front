@@ -1,8 +1,9 @@
 'use client';
 
-import { Grid, Stack } from '@mantine/core';
+import { Grid, List, Stack } from '@mantine/core';
 import CardImage from '@/components/ui/card-image';
 import { FashionCarousel } from '@/components/ui/fashion-carousel';
+import ListaAllPublicProducts from '@/domains/product/public/lista-all-public-products';
 
 export default function PublicPage() {
   const carouselSlidesData = [
@@ -27,7 +28,7 @@ export default function PublicPage() {
     <>
       <FashionCarousel slides={carouselSlidesData} />
 
-      <Stack my="xl" px="100">
+      {/* <Stack my="xl" px="100">
         <Grid gutter="xl">
           <Grid.Col span={{ base: 12, sm: 4 }}>
             <CardImage image="/aside-2.jpg" href="/products/collection/formal-wear" />
@@ -43,6 +44,10 @@ export default function PublicPage() {
             </Grid>
           </Grid.Col>
         </Grid>
+      </Stack> */}
+
+      <Stack my="xl" px="100">
+        <ListaAllPublicProducts />
       </Stack>
     </>
   );
