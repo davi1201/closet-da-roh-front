@@ -4,7 +4,7 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 const withPWA = createWithPWA({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
-  register: true,
+  register: false,
   skipWaiting: true,
   // CRÍTICO: Usa o worker customizado que integra Firebase + PWA
   swSrc: 'worker/index.ts',
