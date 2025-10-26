@@ -46,7 +46,7 @@ export default function PublicPage() {
         </Grid>
       </Stack> */}
 
-      <Stack my="xl" px="100">
+      <Stack my="xl" px="xl">
         <ListaAllPublicProducts />
       </Stack>
     </>
