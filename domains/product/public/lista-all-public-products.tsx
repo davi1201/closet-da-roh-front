@@ -115,7 +115,7 @@ export default function ListaAllPublicProducts() {
   }
 
   return (
-    <Stack style={{ padding: 'var(--mantine-spacing-lg)' }}>
+    <Stack>
       {client ? (
         <>
           <Title order={2}>Olá, {client.name}!</Title>
@@ -160,7 +160,7 @@ export default function ListaAllPublicProducts() {
         </Chip.Group>
       )}
 
-      <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} mt="lg">
+      <SimpleGrid cols={{ base: 1, sm: 3, md: 4, lg: 5 }} mt="lg">
         {
           // @ts-ignore
           filteredProducts.map((product: ProductWithSelection) => (
