@@ -1,33 +1,32 @@
+'use client';
+
 import { useState } from 'react';
 import { Button, Flex, Group, Select, Stack, Text, Textarea } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { SALE_CANCEL_REASONS } from '@/constants/abandoned-cart-reason';
 import api from '@/lib/api';
-import { useCartStore } from '@/store';
+import { TransactionData } from '@/store/cart/types';
 
-// 2. Definir as props que o componente espera (para fechar o modal)
 interface AbandonedCartFormProps {
+  cart: TransactionData;
+  cartId: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-// 3. Definir os valores que este formulário controla
 interface FormValues {
   cancellationCode: string;
   details: string;
 }
 
-export default function AbandonedCartForm({ onSuccess, onCancel }: AbandonedCartFormProps) {
+export default function AbandonedCartForm({
+  cart,
+  cartId,
+  onSuccess,
+  onCancel,
+}: AbandonedCartFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-
-  const activeCart = useCartStore((state) => {
-    const activeId = state.activeCartId;
-    return activeId ? state.carts[activeId] : null;
-  });
-
-  const activeCartId = useCartStore((state) => state.activeCartId);
-  const removeCart = useCartStore((state) => state.removeCart);
 
   const form = useForm<FormValues>({
     initialValues: {
@@ -41,8 +40,7 @@ export default function AbandonedCartForm({ onSuccess, onCancel }: AbandonedCart
   });
 
   const handleSubmit = async (values: FormValues) => {
-    // 5. Validar se o carrinho existe
-    if (!activeCart || !activeCartId) {
+    if (!cart || !cartId) {
       notifications.show({
         title: 'Erro',
         message: 'Nenhum carrinho ativo para abandonar.',
@@ -53,25 +51,23 @@ export default function AbandonedCartForm({ onSuccess, onCancel }: AbandonedCart
 
     setIsLoading(true);
 
-    // 6. Mapear os dados do Zustand para o formato do Model do Backend
-    const totalItems = activeCart.items.reduce((acc, item) => acc + item.quantity, 0);
+    const totalItems = cart.items.reduce((acc, item) => acc + item.quantity, 0);
 
-    const formattedProducts = activeCart.items.map((item) => ({
-      productId: item.productId, // O Model espera 'productId'
+    const formattedProducts = cart.items.map((item) => ({
+      productId: item.productId,
       quantity: item.quantity,
       price: item.unit_sale_price,
       name: item.name,
     }));
 
-    // 7. Montar o payload final
     const payload = {
-      sessionId: activeCartId, // Usando o ID do carrinho como SessionID
-      totalAmount: activeCart.total_amount,
+      sessionId: cartId,
+      totalAmount: cart.total_amount,
       totalItems: totalItems,
       products: formattedProducts,
-      userId: activeCart.customer || undefined,
+      userId: cart.customer || undefined,
       cancellationCode: values.cancellationCode,
-      cancellationReason: values.details, // O Model espera 'cancellationReason'
+      cancellationReason: values.details,
     };
 
     try {
@@ -81,9 +77,6 @@ export default function AbandonedCartForm({ onSuccess, onCancel }: AbandonedCart
         message: 'O motivo do abandono foi registrado.',
         color: 'green',
       });
-
-      // 8. Remover o carrinho do Zustand e fechar o modal
-      removeCart(activeCartId);
       onSuccess();
     } catch (error) {
       console.error('Erro ao enviar motivo de abandono:', error);
@@ -102,7 +95,6 @@ export default function AbandonedCartForm({ onSuccess, onCancel }: AbandonedCart
       <Stack>
         <Text>Informe o motivo do abandono:</Text>
 
-        {/* 9. Conectar os campos ao formulário com getInputProps */}
         <Select
           data={SALE_CANCEL_REASONS}
           placeholder="Selecione um motivo"

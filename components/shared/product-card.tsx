@@ -12,15 +12,15 @@ import {
   useMantineTheme,
 } from '@mantine/core';
 import { ProductResponse } from '@/domains/product/types/product';
+import { useAppStore } from '@/store/app/use-app-store';
 import { formatPrice } from '@/utils/formatters';
 import AddCartProduct from './add-product-cart';
 
 interface ProductCardProps {
   product: ProductResponse;
-  handleEdit?: (id: string) => void;
   children?: React.ReactNode;
-  showPrice?: boolean;
   onSelect?: (product: ProductResponse) => void;
+  showPrice?: boolean;
 }
 
 const sizeOrder = {
@@ -32,16 +32,11 @@ const sizeOrder = {
   XGG: 6,
 };
 
-export default function ProductCard({
-  product,
-  handleEdit,
-  children,
-  showPrice = true,
-  onSelect,
-}: ProductCardProps) {
+export default function ProductCard({ product, children, onSelect, showPrice }: ProductCardProps) {
   const theme = useMantineTheme();
   const [variantActive, setVariantActive] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const mode = useAppStore((state) => state.mode);
 
   const isProductOutOfStock = () => {
     const quantity = product.variants?.[variantActive]?.quantity ?? 0;
@@ -57,7 +52,9 @@ export default function ProductCard({
               return (
                 <Carousel.Slide
                   key={image.url}
-                  onClick={() => onSelect?.(product)}
+                  onClick={() => {
+                    onSelect?.(product);
+                  }}
                   style={{ cursor: 'pointer' }}
                 >
                   <Image src={image.url} height={360} alt={product.name} fit="cover" />
@@ -84,11 +81,12 @@ export default function ProductCard({
 
         <Flex direction="column" gap="xs" mt="md" mb="xs">
           <Text fw={500}>{product.name.toUpperCase()}</Text>
-          {showPrice && (
-            <Badge variant="filled" size="lg" radius="md">
-              {formatPrice(parseFloat(product.variants[variantActive].sale_price))}
-            </Badge>
-          )}
+          {mode === 'admin' ||
+            (showPrice && (
+              <Badge variant="filled" size="lg" radius="md">
+                {formatPrice(parseFloat(product.variants[variantActive].sale_price))}
+              </Badge>
+            ))}
         </Flex>
 
         <Text size="md" c="dimmed" truncate="end">
@@ -138,20 +136,6 @@ export default function ProductCard({
 
         {children}
       </Card>
-
-      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={product.name}>
-        <AddCartProduct
-          isProductOutOfStock={isProductOutOfStock()}
-          onClose={() => setModalOpen(false)}
-          product={{
-            _id: product._id,
-            name: product.name,
-            description: product.description,
-            images: product.images,
-            variant: product.variants[variantActive],
-          }}
-        />
-      </Modal>
     </>
   );
 }

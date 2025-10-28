@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import ProductForm, { ProductFormValues } from '@/forms/product-form';
@@ -11,6 +11,7 @@ import { ProductResponse } from './types/product';
 
 export default function EditProduct() {
   const { id } = useParams() as { id: string };
+  const router = useRouter();
 
   const [productData, setProductData] = useState<ProductFormValues | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +81,7 @@ export default function EditProduct() {
 
     updateProduct(productId, formattedValues, files)
       .then(() => {
+        router.push('/backoffice/products');
         notifications.show({
           title: 'Amor 🎉🎉🎉',
           message: 'Produto atualizado com sucesso!',

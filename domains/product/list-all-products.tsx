@@ -3,11 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Grid, Group, Skeleton, Stack, Text } from '@mantine/core';
-import { useDebouncedValue } from '@mantine/hooks'; // Hook para evitar spam na API
+import { Alert, Button, Grid, Group, Modal, Skeleton, Stack, Text } from '@mantine/core';
+import { useDebouncedValue, useToggle } from '@mantine/hooks'; // Hook para evitar spam na API
 import { showNotification } from '@mantine/notifications'; // Para feedback
+
+import AddCartProduct from '@/components/shared/add-product-cart';
 import ProductCard from '@/components/shared/product-card';
+import ProductsDetail from '@/components/shared/products-detail';
 import { useCartStore } from '@/store';
+import { useAppStore } from '@/store/app/use-app-store';
 import ProductAdminActionButtons from './components/product-admin-actions';
 import ProductFilter from './product-filter';
 // Assumindo que os serviços de API foram atualizados
@@ -32,24 +36,25 @@ export default function ListAllProducts() {
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState('');
-  // 2. Estado "atrasado" (debounced) para enviar à API
-  const [debouncedSearch] = useDebouncedValue(searchTerm, 300); // Atraso de 300ms
+  const [productSelected, setProductSelected] = useState<ProductResponse | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isModalProductDetailsOpen, setIsModalProductDetailsOpen] = useState(false);
 
-  // 3. Pega o contador da store para invalidar o cache
+  const [debouncedSearch] = useDebouncedValue(searchTerm, 300);
   const saleFinalizedCount = useCartStore((state) => state.saleFinalizedCount);
 
-  // 4. Hook de BUSCA (useQuery)
+  const mode = useAppStore((state) => state.mode);
+  const toggleMode = useAppStore((state) => state.toggleMode);
+
   const {
     data: products = [], // Valor padrão para evitar erros
     isLoading,
     isError,
     error,
   } = useQuery<ProductResponse[], Error>({
-    // A queryKey agora inclui o filtro
     queryKey: ['products', debouncedSearch],
-    // A queryFn agora passa o filtro para a API
+
     queryFn: () => getAllProducts(debouncedSearch),
-    // staleTime: 1000 * 60 * 5, // (Opcional) Cache de 5 min
   });
 
   useEffect(() => {
@@ -78,17 +83,13 @@ export default function ListAllProducts() {
     },
   });
 
-  // Handlers
   const handleEdit = (id: string) => {
     router.push(`/backoffice/products/edit/${id}`);
   };
 
   const handleDelete = (id: string) => {
-    // (Implementação real do delete)
     deleteProductMutation(id);
   };
-
-  // O 'columns' não estava sendo usado, foi removido.
 
   return (
     <>
@@ -97,9 +98,16 @@ export default function ListAllProducts() {
           <Text size="xl" fw={700}>
             Produtos cadastrados
           </Text>
-          <Button size="sm" onClick={() => router.push('/backoffice/products/create')}>
-            Adicionar Produto
-          </Button>
+          <Group gap="sm">
+            {mode === 'admin' && (
+              <Button size="sm" onClick={() => router.push('/backoffice/products/create')}>
+                Adicionar Produto
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => toggleMode()}>
+              {mode === 'admin' ? 'Modo Venda' : 'Modo Admin'}
+            </Button>
+          </Group>
         </Group>
 
         {/* O filtro agora controla o 'searchTerm' local */}
@@ -130,11 +138,24 @@ export default function ListAllProducts() {
           <Grid gutter="xl">
             {products.map((product) => (
               <Grid.Col span={{ base: 12, xs: 12, sm: 6, md: 4, lg: 3 }} key={product._id}>
-                <ProductCard product={product} handleEdit={handleEdit}>
+                <ProductCard
+                  product={product}
+                  onSelect={(product) => {
+                    setProductSelected(product);
+                    setModalOpen(true);
+                  }}
+                >
                   <ProductAdminActionButtons
                     productId={product._id}
                     handleEdit={handleEdit}
-                    addToCart={() => {}}
+                    onDetail={() => {
+                      setProductSelected(product);
+                      setIsModalProductDetailsOpen(true);
+                    }}
+                    addToCart={() => {
+                      setProductSelected(product);
+                      setModalOpen(true);
+                    }}
                   />
                 </ProductCard>
               </Grid.Col>
@@ -142,6 +163,28 @@ export default function ListAllProducts() {
           </Grid>
         )}
       </Stack>
+
+      <ProductsDetail
+        isOpen={isModalProductDetailsOpen}
+        handleModalClose={() => setIsModalProductDetailsOpen(false)}
+        product={productSelected}
+      />
+
+      <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={productSelected?.name}>
+        {productSelected && (
+          <AddCartProduct
+            isProductOutOfStock={false}
+            onClose={() => setModalOpen(false)}
+            product={{
+              _id: productSelected._id,
+              name: productSelected.name,
+              description: productSelected.description,
+              images: productSelected.images,
+              variant: productSelected.variants[0],
+            }}
+          />
+        )}
+      </Modal>
     </>
   );
 }

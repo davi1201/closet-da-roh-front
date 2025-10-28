@@ -39,8 +39,6 @@ export default function AddCartProduct({
   const [clientSelectName, setClientSelectName] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
-  const theme = useMantineTheme();
-
   const addToCart = useCartStore((state) => state.addToCart);
   const createNewCart = useCartStore((state) => state.createNewCart);
   const activeCartId = useCartStore((state) => state.activeCartId);

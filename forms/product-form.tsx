@@ -213,7 +213,6 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
         buy_price: (value) => (value ? null : 'Preço de Compra é obrigatório'),
         sale_price: (value) => (value ? null : 'Preço de Venda é obrigatório'),
         quantity: (value) => (value ? null : 'Quantidade é obrigária'),
-        minimum_stock: (value) => (value ? null : 'Estoque Mínimo é obrigatório'),
       },
     },
   });

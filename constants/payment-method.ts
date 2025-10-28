@@ -1,6 +1,7 @@
 export const PAYMENT_METHODS = new Map<string, string>([
   ['card', 'CARTÃO DE CRÉDITO'],
   ['debit_card', 'Cartão de Débito'],
+  ['credit', 'Crediário'],
   ['boleto', 'Boleto Bancário'],
   ['pix', 'PIX'],
   ['cash', 'Dinheiro'],

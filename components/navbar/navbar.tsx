@@ -54,6 +54,11 @@ const linksMockdata = [
     ],
   },
   {
+    label: 'Financeiro',
+    icon: IconCalendarDollar,
+    links: [{ to: 'accounts-receivable', label: 'Contas a Receber' }],
+  },
+  {
     label: 'Configurações',
     icon: IconSettings,
     links: [
