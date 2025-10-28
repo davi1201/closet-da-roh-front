@@ -1,9 +1,24 @@
 'use client';
 
-import { Grid, List, Stack } from '@mantine/core';
+import { IconDiamond, IconHeart, IconHome, IconHomeHeart } from '@tabler/icons-react';
+import {
+  Blockquote,
+  Box,
+  Container,
+  Grid,
+  Image,
+  List,
+  rem,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from '@mantine/core';
 import CardImage from '@/components/ui/card-image';
 import { FashionCarousel } from '@/components/ui/fashion-carousel';
 import ListaAllPublicProducts from '@/domains/product/public/lista-all-public-products';
+import AboutUsPage from './about-us';
+import { Footer } from './footer';
 
 export default function PublicPage() {
   const carouselSlidesData = [
@@ -27,28 +42,13 @@ export default function PublicPage() {
   return (
     <>
       <FashionCarousel slides={carouselSlidesData} />
-
-      {/* <Stack my="xl" px="100">
-        <Grid gutter="xl">
-          <Grid.Col span={{ base: 12, sm: 4 }}>
-            <CardImage image="/aside-2.jpg" href="/products/collection/formal-wear" />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 6 }}>
-            <Grid mb="md" gutter="md">
-              <Grid.Col span={6}>
-                <CardImage image="/aside-1.png" href="/products/collection/summer-2024" />
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <CardImage image="/aside-1.png" href="/products/collection/casual-wear" />
-              </Grid.Col>
-            </Grid>
-          </Grid.Col>
-        </Grid>
-      </Stack> */}
+      <AboutUsPage />
 
       <Stack my="xl" px="xl">
         <ListaAllPublicProducts />
       </Stack>
+
+      <Footer />
     </>
   );
 }

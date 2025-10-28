@@ -1,31 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import { IconPencil, IconShoppingCart } from '@tabler/icons-react';
-import Autoplay from 'embla-carousel-autoplay';
+import { useState } from 'react';
 import { Carousel } from '@mantine/carousel';
 import {
-  Autocomplete,
   Badge,
-  Button,
   Card,
   ColorSwatch,
   Flex,
   Image,
   Modal,
   SegmentedControl,
-  Stack,
   Text,
   useMantineTheme,
 } from '@mantine/core';
-import { getAllClients } from '@/domains/clients/client-service';
 import { ProductResponse } from '@/domains/product/types/product';
-import { ProductVariant } from '@/forms/product-form';
-import { useCartStore } from '@/store';
 import { formatPrice } from '@/utils/formatters';
 import AddCartProduct from './add-product-cart';
 
 interface ProductCardProps {
   product: ProductResponse;
-  handleEdit: (id: string) => void;
+  handleEdit?: (id: string) => void;
+  children?: React.ReactNode;
+  showPrice?: boolean;
+  onSelect?: (product: ProductResponse) => void;
 }
 
 const sizeOrder = {
@@ -37,7 +32,13 @@ const sizeOrder = {
   XGG: 6,
 };
 
-export default function ProductCard({ product, handleEdit }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  handleEdit,
+  children,
+  showPrice = true,
+  onSelect,
+}: ProductCardProps) {
   const theme = useMantineTheme();
   const [variantActive, setVariantActive] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,7 +57,7 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
               return (
                 <Carousel.Slide
                   key={image.url}
-                  onClick={() => setModalOpen(true)}
+                  onClick={() => onSelect?.(product)}
                   style={{ cursor: 'pointer' }}
                 >
                   <Image src={image.url} height={360} alt={product.name} fit="cover" />
@@ -83,9 +84,11 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
 
         <Flex direction="column" gap="xs" mt="md" mb="xs">
           <Text fw={500}>{product.name.toUpperCase()}</Text>
-          <Badge variant="filled" size="lg" radius="md">
-            {formatPrice(parseFloat(product.variants[variantActive].sale_price))}
-          </Badge>
+          {showPrice && (
+            <Badge variant="filled" size="lg" radius="md">
+              {formatPrice(parseFloat(product.variants[variantActive].sale_price))}
+            </Badge>
+          )}
         </Flex>
 
         <Text size="md" c="dimmed" truncate="end">
@@ -94,7 +97,7 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
 
         <Flex mt="md" gap="xs" align="center">
           <Text size="md" c="dimmed">
-            COR:
+            {product.variants.length > 1 ? 'CORES' : 'COR'}:
           </Text>
           {product.variants
             .sort((a, b) => {
@@ -118,7 +121,7 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
 
         <Flex mt="md" gap="xs" align="center">
           <Text size="md" c="dimmed">
-            TAMANHO:
+            {product.variants.length > 1 ? 'TAMANHOS' : 'TAMANHO'}:
           </Text>
           <SegmentedControl
             data={product.variants.map((variant) => ({
@@ -133,32 +136,7 @@ export default function ProductCard({ product, handleEdit }: ProductCardProps) {
           />
         </Flex>
 
-        <Flex direction="column">
-          <Button
-            variant="gradient"
-            fullWidth
-            mt="md"
-            size="lg"
-            radius="md"
-            onClick={() => setModalOpen(true)}
-          >
-            <IconShoppingCart size={20} style={{ marginRight: 8 }} />
-            Adicionar ao carrinho
-          </Button>
-
-          <Button
-            variant="filled"
-            color="yellow"
-            fullWidth
-            mt="xs"
-            size="lg"
-            radius="md"
-            onClick={() => handleEdit(product._id)}
-          >
-            <IconPencil size={20} style={{ marginRight: 8 }} />
-            Editar
-          </Button>
-        </Flex>
+        {children}
       </Card>
 
       <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title={product.name}>

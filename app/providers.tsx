@@ -13,17 +13,13 @@ interface ProvidersProps {
 }
 
 export default function Providers({ children }: ProvidersProps) {
-  // useState para QueryClient SÓ pode existir em Client Components
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    // QueryClientProvider SÓ pode existir em Client Components
     <QueryClientProvider client={queryClient}>
-      {/* MantineProvider SÓ pode existir em Client Components */}
-      <MantineProvider theme={theme} defaultColorScheme="auto">
-        {/* Notifications SÓ pode existir em Client Components */}
+      <MantineProvider theme={theme} defaultColorScheme="light">
         <Notifications position="top-center" />
-        {children} {/* Renderiza o conteúdo da página envolvido pelos providers */}
+        {children}
       </MantineProvider>
 
       {/* <ReactQueryDevtools initialIsOpen={false} /> */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { Stack, Text, Title } from '@mantine/core';
+import { Button, Stack, Text, Title } from '@mantine/core';
 import { DataGrid } from '@/components/ui/data-grid';
 import { PAYMENT_METHODS } from '@/constants/payment-method';
 import { formatPrice } from '@/utils/formatters';
@@ -59,6 +59,17 @@ export default function ListAllSales() {
       accessorKey: 'payment_details.method',
       header: 'Método de Pagamento',
       cell: ({ row }) => <Text>{PAYMENT_METHODS.get(row.original.payment_details.method)}</Text>,
+    },
+    {
+      accessorKey: 'payment_details',
+      header: 'Detalhes do Pagamento',
+      cell: ({ row }) => {
+        return (
+          <Button size="xs" variant="light">
+            Ver Detalhes
+          </Button>
+        );
+      },
     },
     {
       accessorKey: 'createdAt',

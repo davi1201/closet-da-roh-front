@@ -8,6 +8,7 @@ import { useDebouncedValue } from '@mantine/hooks'; // Hook para evitar spam na 
 import { showNotification } from '@mantine/notifications'; // Para feedback
 import ProductCard from '@/components/shared/product-card';
 import { useCartStore } from '@/store';
+import ProductAdminActionButtons from './components/product-admin-actions';
 import ProductFilter from './product-filter';
 // Assumindo que os serviços de API foram atualizados
 import { deleteProduct, getAllProducts } from './product-service';
@@ -127,17 +128,15 @@ export default function ListAllProducts() {
 
         {!isLoading && !isError && products.length > 0 && (
           <Grid gutter="xl">
-            {/* NÃO PRECISA MAIS DE .filter() AQUI!
-              A API já retorna os dados filtrados.
-            */}
             {products.map((product) => (
               <Grid.Col span={{ base: 12, xs: 12, sm: 6, md: 4, lg: 3 }} key={product._id}>
-                <ProductCard
-                  product={product}
-                  handleEdit={handleEdit}
-                  // handleDelete={handleDelete}
-                  // isDeleting={isDeleting} // (Opcional: passe o loading para o card)
-                />
+                <ProductCard product={product} handleEdit={handleEdit}>
+                  <ProductAdminActionButtons
+                    productId={product._id}
+                    handleEdit={handleEdit}
+                    addToCart={() => {}}
+                  />
+                </ProductCard>
               </Grid.Col>
             ))}
           </Grid>

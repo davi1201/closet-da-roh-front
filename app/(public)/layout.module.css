@@ -1,10 +1,57 @@
 .control {
   display: block;
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  width: 100%;
+  padding: 8px 12px;
+  color: var(--mantine-color-text);
+  font-size: var(--mantine-font-size-sm);
   border-radius: var(--mantine-radius-md);
-  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
 
-  @mixin hover {
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+.control:hover {
+  background-color: var(--mantine-color-pink-0);
+  color: var(--mantine-color-pink-7);
+}
+
+.control:active {
+  transform: scale(0.98);
+}
+
+/* Desktop menu items */
+@media (min-width: 768px) {
+  .control {
+    width: auto;
   }
+
+  .control:hover {
+    background-color: var(--mantine-color-pink-0);
+    transform: translateY(-2px);
+  }
+}
+
+/* Animação suave para o navbar */
+.navbar {
+  transition: transform 0.3s ease;
+}
+
+/* Scrollbar personalizado para mobile */
+@media (max-width: 767px) {
+  /* ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--mantine-color-gray-0);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--mantine-color-pink-3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--mantine-color-pink-5);
+  } */
 }
