@@ -202,7 +202,7 @@ export default function ListaAllPublicProducts() {
             <ProductCard
               key={product._id}
               product={product}
-              showPrice={false}
+              showPrice={true}
               onSelect={handleProductSelect}
             />
           ))}

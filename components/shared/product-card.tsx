@@ -32,7 +32,12 @@ const sizeOrder = {
   XGG: 6,
 };
 
-export default function ProductCard({ product, children, onSelect, showPrice }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  children,
+  onSelect,
+  showPrice = false,
+}: ProductCardProps) {
   const theme = useMantineTheme();
   const [variantActive, setVariantActive] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -81,8 +86,8 @@ export default function ProductCard({ product, children, onSelect, showPrice }: 
 
         <Flex direction="column" gap="xs" mt="md" mb="xs">
           <Text fw={500}>{product.name.toUpperCase()}</Text>
-          {mode === 'admin' ||
-            (showPrice && (
+          {showPrice === true ||
+            (mode === 'admin' && (
               <Badge variant="filled" size="lg" radius="md">
                 {formatPrice(parseFloat(product.variants[variantActive].sale_price))}
               </Badge>

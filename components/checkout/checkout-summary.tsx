@@ -24,8 +24,8 @@ import { formatPrice } from '@/utils/formatters';
 const PAYMENT_METHODS = [
   { value: 'pix', label: 'Pix (À Vista)' },
   { value: 'cash', label: 'Dinheiro (À Vista)' },
-  { value: 'card', label: 'Cartão de Crédito/Débito' },
-  { value: 'credit', label: 'Crediário' },
+  { value: 'card', label: 'Cartão de Crédito' },
+  { value: 'credit', label: 'Crediário (Fiado)' },
 ];
 
 interface CheckoutSummaryProps {
@@ -58,6 +58,7 @@ export function CheckoutSummary({
     handleDiscountChange,
     handleInstallmentChange,
     currentDiscountAmount,
+    calculatedInterest,
   } = useCheckout(cart);
 
   const { items, subtotal_amount, total_amount } = cart;
@@ -71,7 +72,11 @@ export function CheckoutSummary({
       setSubmissionError('O carrinho está vazio.');
       return;
     }
-    if (selectedMethod === 'card' && !availableConditions.length && !loading) {
+    if (
+      (selectedMethod === 'card' || selectedMethod === 'credit') &&
+      !availableConditions.length &&
+      !loading
+    ) {
       setSubmissionError(
         'Aguarde o carregamento das condições de pagamento ou selecione outro método.'
       );
@@ -186,13 +191,14 @@ export function CheckoutSummary({
               -{formatPrice(currentDiscountAmount)}
             </Text>
           </Group>
-          {cart.paymentDetails.interest_rate_percentage > 0 && (
+
+          {calculatedInterest > 0 && (
             <Group justify="space-between">
               <Text size="sm">
                 Juros ({cart.paymentDetails.interest_rate_percentage.toFixed(2)}%)
               </Text>
               <Text size="sm" c="red" fw={500}>
-                +{formatPrice(total_amount - subtotal_amount + cart.paymentDetails.discount_amount)}
+                + {formatPrice(calculatedInterest)}
               </Text>
             </Group>
           )}
@@ -211,46 +217,40 @@ export function CheckoutSummary({
           />
         </Stack>
 
-        {selectedMethod === 'card' ||
-          (selectedMethod === 'credit' && (
-            <Stack gap="xs">
-              <Text fw={600}>Opções de Parcelamento</Text>
-              {loading && <Loader size="sm" />}
-              {!loading && hookError && (
-                <Alert
-                  icon={<IconAlertCircle size={16} />}
-                  title="Erro"
-                  color="red"
-                  variant="light"
-                >
-                  {hookError}
-                </Alert>
-              )}
+        {(selectedMethod === 'card' || selectedMethod === 'credit') && (
+          <Stack gap="xs">
+            <Text fw={600}>Opções de Parcelamento</Text>
+            {loading && <Loader size="sm" />}
+            {!loading && hookError && (
+              <Alert icon={<IconAlertCircle size={16} />} title="Erro" color="red" variant="light">
+                {hookError}
+              </Alert>
+            )}
 
-              <Radio.Group
-                value={cart.paymentDetails.installments.toString()}
-                onChange={handleInstallmentChange}
-              >
-                <Stack gap="xs">
-                  {availableConditions.length > 0
-                    ? availableConditions.map((condition) => (
-                        <Radio
-                          key={condition.installments}
-                          value={condition.installments.toString()}
-                          label={condition.description}
-                          size="sm"
-                        />
-                      ))
-                    : !loading &&
-                      !hookError && (
-                        <Text c="dimmed" size="sm">
-                          Nenhuma opção de parcelamento disponível.
-                        </Text>
-                      )}
-                </Stack>
-              </Radio.Group>
-            </Stack>
-          ))}
+            <Radio.Group
+              value={cart.paymentDetails.installments.toString()}
+              onChange={handleInstallmentChange}
+            >
+              <Stack gap="xs">
+                {availableConditions.length > 0
+                  ? availableConditions.map((condition) => (
+                      <Radio
+                        key={condition.installments}
+                        value={condition.installments.toString()}
+                        label={condition.description}
+                        size="sm"
+                      />
+                    ))
+                  : !loading &&
+                    !hookError && (
+                      <Text c="dimmed" size="sm">
+                        Nenhuma opção de parcelamento disponível.
+                      </Text>
+                    )}
+              </Stack>
+            </Radio.Group>
+          </Stack>
+        )}
 
         {currentError && !loading && (
           <Alert icon={<IconAlertCircle size={16} />} title="Atenção" color="red">

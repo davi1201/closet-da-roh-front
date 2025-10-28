@@ -30,7 +30,9 @@ export const getPaymentConditions = async (purchaseValue: number): Promise<Payme
     const response = await api.get<PaymentCondition[]>(
       `${INSTALLMENTS_API_URL}?purchaseValue=${purchaseValue}`
     );
-    return response.data;
+    const sortedConditions = [...response.data].sort((a, b) => a.installments - b.installments);
+
+    return sortedConditions;
   } catch (error) {
     throw error;
   }

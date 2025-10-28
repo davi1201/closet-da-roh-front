@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPaymentConditions } from '@/domains/sales/sale-service';
+import { getAllInsttallmentOptions } from '@/domains/installments/installment-service';
 import { PaymentCondition } from '@/domains/sales/types/types';
 import { useCartStore } from '@/store';
 import { TransactionData } from '@/store/cart/types';
 
 export function useCheckout(cart: TransactionData) {
-  const { subtotal_amount, paymentDetails, total_amount } = cart;
+  const { subtotal_amount, paymentDetails } = cart;
   const setPaymentDetails = useCartStore((state) => state.setPaymentDetails);
 
   const [selectedMethod, setSelectedMethod] = useState<string>(
@@ -16,6 +16,8 @@ export function useCheckout(cart: TransactionData) {
   const [availableConditions, setAvailableConditions] = useState<PaymentCondition[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [calculatedInterest, setCalculatedInterest] = useState(0);
 
   const initialDiscountPercent =
     subtotal_amount > 0 ? (paymentDetails.discount_amount / subtotal_amount) * 100 : 0;
@@ -35,9 +37,11 @@ export function useCheckout(cart: TransactionData) {
     if (subtotal_amount <= 0) return;
 
     const discountAmount = calculateDiscountAmount(discountInput);
+    const baseTotal = subtotal_amount - discountAmount;
 
     if (selectedMethod !== 'card' && selectedMethod !== 'credit') {
       setAvailableConditions([]);
+      setCalculatedInterest(0);
       setPaymentDetails({
         method: selectedMethod,
         installments: 1,
@@ -51,15 +55,17 @@ export function useCheckout(cart: TransactionData) {
       setLoading(true);
       setError(null);
       try {
-        const conditions = await getPaymentConditions(total_amount);
+        const conditions = await getAllInsttallmentOptions(baseTotal);
         setAvailableConditions(conditions);
-
         const currentInstallment =
           conditions.find((c) => c.installments === paymentDetails.installments) ||
           conditions.find((c) => c.installments === 1) ||
           conditions[0];
 
         if (currentInstallment) {
+          const interest = currentInstallment.total_value - baseTotal;
+          setCalculatedInterest(interest > 0 ? interest : 0);
+
           setPaymentDetails({
             method: selectedMethod,
             installments: currentInstallment.installments,
@@ -67,8 +73,8 @@ export function useCheckout(cart: TransactionData) {
             discount_amount: discountAmount,
           });
         }
-      } catch (err) {
-        setError('Não foi possível carregar as opções de parcelamento.');
+      } catch (err: any) {
+        setError(err.message || 'Não foi possível carregar as opções de parcelamento.');
         setAvailableConditions([]);
       } finally {
         setLoading(false);
@@ -76,7 +82,13 @@ export function useCheckout(cart: TransactionData) {
     };
 
     fetchInstallments();
-  }, [subtotal_amount, selectedMethod, setPaymentDetails, discountInput, total_amount]);
+  }, [
+    subtotal_amount,
+    selectedMethod,
+    setPaymentDetails,
+    discountInput,
+    paymentDetails.installments,
+  ]);
 
   useEffect(() => {
     if (subtotal_amount > 0) {
@@ -93,6 +105,10 @@ export function useCheckout(cart: TransactionData) {
 
     if (condition) {
       const discountAmount = calculateDiscountAmount(discountInput);
+      const baseTotal = subtotal_amount - discountAmount;
+
+      const interest = condition.total_value - baseTotal;
+      setCalculatedInterest(interest > 0 ? interest : 0);
 
       setPaymentDetails({
         installments: condition.installments,
@@ -130,5 +146,6 @@ export function useCheckout(cart: TransactionData) {
     handleDiscountChange,
     handleInstallmentChange,
     currentDiscountAmount,
+    calculatedInterest,
   };
 }

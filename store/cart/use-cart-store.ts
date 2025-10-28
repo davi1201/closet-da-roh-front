@@ -21,12 +21,7 @@ const calculateAllTotals = (items: CartItem[], payment: CartPaymentDetails) => {
     0
   );
 
-  let total_amount = subtotal_amount - payment.discount_amount;
-
-  if (payment.interest_rate_percentage > 0) {
-    const interest = total_amount * (payment.interest_rate_percentage / 100);
-    total_amount += interest;
-  }
+  const total_amount = subtotal_amount - payment.discount_amount;
 
   return {
     subtotal_amount: subtotal_amount,
