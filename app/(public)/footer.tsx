@@ -2,8 +2,9 @@ import { IconBrandInstagram, IconBrandWhatsapp } from '@tabler/icons-react';
 import { ActionIcon, Box, Container, Group, rem, Stack, Text, Title } from '@mantine/core';
 
 // 1. COLOQUE SEUS LINKS AQUI
-const WHATSAPP_LINK = 'https://api.whatsapp.com/send?phone=55SEUNUMERO';
-const INSTAGRAM_LINK = 'https://www.instagram.com/SEUUSUARIO';
+const WHATSAPP_LINK =
+  'https://wa.me/+5542998024077?text=Ol%C3%A1%20gostaria%20de%20agendar%20um%20hor%C3%A1rio.';
+const INSTAGRAM_LINK = 'https://www.instagram.com/closetdarohoficial/';
 
 export function Footer() {
   return (

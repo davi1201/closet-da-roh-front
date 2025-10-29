@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { IconCalendar } from '@tabler/icons-react';
 import { Box, Button, Grid, Image, Modal, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { ProductResponse } from '@/domains/product/types/product';
@@ -11,6 +12,7 @@ interface ProductsDetailProps {
 
 export default function ProductsDetail({ isOpen, handleModalClose, product }: ProductsDetailProps) {
   const [selectedColorUrl, setSelectedColorUrl] = useState<string>('');
+  const router = useRouter();
 
   useEffect(() => {
     if (product?.images?.length) {
@@ -97,6 +99,7 @@ export default function ProductsDetail({ isOpen, handleModalClose, product }: Pr
                   variant="gradient"
                   fullWidth
                   mt="md"
+                  onClick={() => router.push('/booking-appoitment')}
                   leftSection={<IconCalendar size={16} />}
                 >
                   Agendar visita

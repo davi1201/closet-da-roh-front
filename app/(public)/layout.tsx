@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   IconCalendar,
   IconHeart,
@@ -33,12 +35,13 @@ interface MenuItem {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [opened, { toggle, close }] = useDisclosure();
+  const router = useRouter();
 
   const menuItems: MenuItem[] = [
     { label: 'Home', icon: IconHome, href: '/' },
-    { label: 'Quem somos', icon: IconInfoCircle, href: '/quem-somos' },
-    { label: 'Produtos', icon: IconShirt, href: '/produtos' },
-    { label: 'Contato', icon: IconMail, href: '/contato' },
+    { label: 'Quem somos', icon: IconInfoCircle, href: '#quem-somos' },
+    { label: 'Produtos', icon: IconShirt, href: '#produtos' },
+    { label: 'Contato', icon: IconMail, href: '#contato' },
   ];
 
   return (
@@ -88,22 +91,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }}
           >
             {menuItems.map((item) => (
-              <UnstyledButton
-                key={item.label}
-                className={classes.control}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--mantine-radius-md)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <Group gap={6} wrap="nowrap">
-                  <item.icon size={16} stroke={1.5} />
-                  <Text size="sm" fw={500}>
-                    {item.label}
-                  </Text>
-                </Group>
-              </UnstyledButton>
+              <Link href={item.href} passHref legacyBehavior>
+                <UnstyledButton
+                  key={item.label}
+                  component="a"
+                  className={classes.control}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--mantine-radius-md)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Group gap={6} wrap="nowrap">
+                    <item.icon size={16} stroke={1.5} />
+                    <Text size="sm" fw={500}>
+                      {item.label}
+                    </Text>
+                  </Group>
+                </UnstyledButton>
+              </Link>
             ))}
           </Group>
 
@@ -116,6 +122,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 variant="light"
                 size="sm"
                 leftSection={<IconCalendar size={16} />}
+                onClick={() => router.push('/booking-appoitment')}
               >
                 Agendar
               </Button>
@@ -185,7 +192,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Botões de ação no menu mobile */}
           <Stack gap="xs">
-            <Button color="pink" variant="light" fullWidth leftSection={<IconCalendar size={18} />}>
+            <Button
+              color="pink"
+              variant="light"
+              fullWidth
+              onClick={() => router.push('/booking-appoitment')}
+              leftSection={<IconCalendar size={18} />}
+            >
               Agendar visita
             </Button>
             <Button color="red" variant="filled" fullWidth leftSection={<IconHeart size={18} />}>

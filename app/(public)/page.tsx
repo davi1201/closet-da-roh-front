@@ -24,31 +24,34 @@ export default function PublicPage() {
   const carouselSlidesData = [
     {
       image: '/slide-1.jpg',
-      title: 'Nova Coleção Verão 2024',
+      title: 'Nova Coleção Verão 2026',
       description:
         'Cores vibrantes e tecidos leves para você arrasar na estação mais quente do ano.',
-      buttonText: 'Compre Agora',
-      link: '/products/collection/summer-2024',
+      buttonText: 'Agendar Visita',
+      link: '/booking-appoitment',
     },
     {
       image: '/slide-2.jpg',
       title: 'Peças Exclusivas para Todas as Ocasiões',
       description: 'Encontre o look perfeito para cada momento, do casual ao mais sofisticado.',
       buttonText: 'Ver Produtos',
-      link: '/products/all',
+      link: '#produtos',
     },
   ];
 
   return (
     <>
       <FashionCarousel slides={carouselSlidesData} />
-      <AboutUsPage />
+      <div id="#quem-somos">
+        <AboutUsPage />
+      </div>
 
-      <Stack my="xl" px="xl">
+      <Stack my="xl" px="xl" id="produtos">
         <ListaAllPublicProducts />
       </Stack>
-
-      <Footer />
+      <div id="#contato">
+        <Footer />
+      </div>
     </>
   );
 }
