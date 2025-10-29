@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: '/favicon.svg',
+    icon: '/favicon.png',
     apple: '/apple-touch-icon.png', // Verifique se este arquivo existe na pasta /public
   },
 };

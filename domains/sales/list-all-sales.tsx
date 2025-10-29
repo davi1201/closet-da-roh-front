@@ -86,6 +86,7 @@ export default function ListAllSales() {
     <Stack mt="xl" mb="xl">
       <Title order={2}>Vendas realizadas</Title>
       <div style={{ width: '100%', overflowX: 'auto' }}>
+        |
         <DataGrid columns={columns} data={sales} />
       </div>
     </Stack>
