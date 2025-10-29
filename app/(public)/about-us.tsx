@@ -58,7 +58,7 @@ export default function QuemSomosSection() {
               }}
             >
               <Image
-                src="/quem-somos-closet-da-roh.jpeg"
+                src="/roh.jpeg"
                 alt="Atendimento exclusivo Closet da Roh"
                 fit="cover"
                 h="100%"

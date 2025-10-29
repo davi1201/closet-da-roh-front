@@ -27,6 +27,7 @@ import { PRODUCT_CATEGORIES } from '@/constants/product-categories';
 import { Client } from '@/domains/clients/types/client';
 import { getAllProducts } from '../product-service';
 import { ProductResponse } from '../types/product';
+import { ProductActionButton } from './components/product-button-action';
 import { getClientByPhone, getProductsByClientId } from './public-products-service';
 
 interface ProductWithSelection extends ProductResponse {
@@ -204,7 +205,12 @@ export default function ListaAllPublicProducts() {
               product={product}
               showPrice={true}
               onSelect={handleProductSelect}
-            />
+            >
+              {
+                //@ts-ignore
+                client && <ProductActionButton product={product} client={client} />
+              }
+            </ProductCard>
           ))}
         </SimpleGrid>
       ) : (

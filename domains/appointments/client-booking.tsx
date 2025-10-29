@@ -207,7 +207,7 @@ export default function ClientBookingPage() {
       // Resetar estados após sucesso
       form.reset();
       setSelectedSlotId(null);
-      router.push(`/public/products/${form.values.clientPhone}`); // Exemplo de redirecionamento
+      router.push(`/products/${form.values.clientPhone}`); // Exemplo de redirecionamento
       // Opcional: voltar para o primeiro passo ou resetar a data
       // setActiveStep(0);
       // setSelectedDate(dayjs());

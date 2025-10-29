@@ -91,9 +91,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }}
           >
             {menuItems.map((item) => (
-              <Link href={item.href} passHref legacyBehavior>
+              <Link href={item.href} key={item.label} passHref legacyBehavior>
                 <UnstyledButton
-                  key={item.label}
                   component="a"
                   className={classes.control}
                   style={{

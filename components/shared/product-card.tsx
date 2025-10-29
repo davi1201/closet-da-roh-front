@@ -98,46 +98,50 @@ export default function ProductCard({
           {product.description.toLocaleUpperCase()}
         </Text>
 
-        <Flex mt="md" gap="xs" align="center">
-          <Text size="md" c="dimmed">
-            {product.variants.length > 1 ? 'CORES' : 'COR'}:
-          </Text>
-          {product.variants
-            .sort((a, b) => {
-              // Use o 'sizeOrder' para comparar.
-              // Dê um valor alto (99) para tamanhos não encontrados.
-              // @ts-ignore
-              const orderA = sizeOrder[a.size] || 99;
-              // @ts-ignore
-              const orderB = sizeOrder[b.size] || 99;
-              return orderA - orderB;
-            })
-            .map((variant) => (
-              <ColorSwatch
-                key={variant._id}
-                color={variant.color || theme.colors.gray[2]}
-                size={20}
-                radius="sm"
-              />
-            ))}
-        </Flex>
+        {product.variants && (
+          <>
+            <Flex mt="md" gap="xs" align="center">
+              <Text size="md" c="dimmed">
+                {product.variants.length > 1 ? 'CORES' : 'COR'}:
+              </Text>
+              {product.variants
+                .sort((a, b) => {
+                  // Use o 'sizeOrder' para comparar.
+                  // Dê um valor alto (99) para tamanhos não encontrados.
+                  // @ts-ignore
+                  const orderA = sizeOrder[a.size] || 99;
+                  // @ts-ignore
+                  const orderB = sizeOrder[b.size] || 99;
+                  return orderA - orderB;
+                })
+                .map((variant) => (
+                  <ColorSwatch
+                    key={variant._id}
+                    color={variant.color || theme.colors.gray[2]}
+                    size={20}
+                    radius="sm"
+                  />
+                ))}
+            </Flex>
 
-        <Flex mt="md" gap="xs" align="center">
-          <Text size="md" c="dimmed">
-            {product.variants.length > 1 ? 'TAMANHOS' : 'TAMANHO'}:
-          </Text>
-          <SegmentedControl
-            data={product.variants.map((variant) => ({
-              label: variant.size ?? '',
-              value: variant.size ?? '',
-            }))}
-            value={product.variants[variantActive].size || ''}
-            onChange={(value) => {
-              const index = product.variants.findIndex((v) => v.size === value);
-              if (index !== -1) setVariantActive(index);
-            }}
-          />
-        </Flex>
+            <Flex mt="md" gap="xs" align="center">
+              <Text size="md" c="dimmed">
+                {product.variants.length > 1 ? 'TAMANHOS' : 'TAMANHO'}:
+              </Text>
+              <SegmentedControl
+                data={product?.variants.map((variant) => ({
+                  label: variant.size ?? '',
+                  value: variant.size ?? '',
+                }))}
+                value={product.variants[variantActive].size || ''}
+                onChange={(value) => {
+                  const index = product.variants.findIndex((v) => v.size === value);
+                  if (index !== -1) setVariantActive(index);
+                }}
+              />
+            </Flex>
+          </>
+        )}
 
         {children}
       </Card>
