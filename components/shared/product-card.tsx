@@ -63,7 +63,7 @@ export default function ProductCard({
                   style={{ cursor: 'pointer' }}
                 >
                   <Image src={image.url} height={360} alt={product.name} fit="cover" />
-                  {isProductOutOfStock() && (
+                  {/* {isProductOutOfStock() && (
                     <Badge
                       variant="filled"
                       color="red"
@@ -77,7 +77,7 @@ export default function ProductCard({
                     >
                       Esgotado
                     </Badge>
-                  )}
+                  )} */}
                 </Carousel.Slide>
               );
             })}
