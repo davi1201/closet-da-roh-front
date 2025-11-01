@@ -86,7 +86,7 @@ const ProductVariantItem = ({
             withAsterisk
             label="Cor"
             placeholder="Selecione a cor"
-            data={PRODUCT_COLORS}
+            data={PRODUCT_COLORS.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))}
             {...form.getInputProps(`${listKey}.${index}.color`)}
           />
         </Grid.Col>
@@ -95,7 +95,7 @@ const ProductVariantItem = ({
             withAsterisk
             label="Tamanho"
             placeholder="Tamanho"
-            data={availableSizes}
+            data={PRODUCT_SIZES}
             {...form.getInputProps(`${listKey}.${index}.size`)}
           />
         </Grid.Col>
@@ -387,7 +387,7 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
               withAsterisk
               label="Categoria"
               placeholder="Selecione a categoria"
-              data={PRODUCT_CATEGORIES}
+              data={PRODUCT_CATEGORIES.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))}
               {...form.getInputProps('category')}
             />
           </Grid.Col>
