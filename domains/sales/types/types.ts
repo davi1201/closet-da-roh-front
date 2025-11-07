@@ -7,15 +7,18 @@ export interface SaleItemPayload {
 
 export interface SalePayload {
   customer_id: string | null;
+  due_date?: Date;
   sold_by: string;
   items: SaleItemPayload[];
-  payment_details: {
+  payment_details?: {
     method: string;
     installments: number;
   };
 }
 
 export interface SaleItemResponse {
+  _id: number;
+  fulfillment_status: string;
   variant: string;
   sku_at_sale: string;
   quantity: number;
@@ -23,11 +26,23 @@ export interface SaleItemResponse {
   subtotal: number;
 }
 
+export interface Payments {
+  method: string;
+  amount: number;
+  installments: number;
+  interest_rate_percentage: number;
+}
+
 export interface SaleResponse {
+  discount_amount: any;
+  fulfillment_status: string;
+  payment_status: string;
+  payments: Payments[];
   _id: string;
   client: Client;
   sold_by: string;
   items: SaleItemResponse[];
+  due_date?: string;
   subtotal_amount: number;
   payment_details: {
     method: string;

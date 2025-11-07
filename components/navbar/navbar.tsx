@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   IconBasketOff,
+  IconCalendarClock,
   IconCalendarDollar,
   IconCalendarEvent,
   IconCashRegister,
@@ -66,8 +67,9 @@ const linksMockdata = [
     label: 'Configurações',
     icon: IconSettings,
     links: [
+      { to: 'appointments', label: 'Agendamentos', icon: IconCalendarClock },
       { to: 'availability/create', label: 'Dias e Horários', icon: IconCalendarEvent },
-      { to: 'appointment/create', label: 'Agendamentos', icon: IconCalendarDollar },
+      { to: 'appointments/create', label: 'Criar agendamento', icon: IconCalendarDollar },
     ],
   },
   { to: 'reports', label: 'Relatórios', icon: IconReport },

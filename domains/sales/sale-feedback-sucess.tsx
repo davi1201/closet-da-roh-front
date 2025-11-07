@@ -103,7 +103,7 @@ export default function SaleSuccessFeedback({
                 Pagamento:
               </Text>
               <Text size="sm" fw={500}>
-                {PAYMENT_METHODS.get(sale.payment_details.method)}
+                {sale.payments.map((payment) => PAYMENT_METHODS.get(payment.method)).join(', ')}
               </Text>
             </Group>
 

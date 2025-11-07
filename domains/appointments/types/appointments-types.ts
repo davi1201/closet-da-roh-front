@@ -25,6 +25,7 @@ export interface AvailabilitySlot {
 // Usado na tela de admin e retornado após a cliente agendar
 export interface Appointment {
   _id: string;
+  clientId?: string;
   clientName: string;
   clientPhone: string;
   clientAddress: ClientAddress;

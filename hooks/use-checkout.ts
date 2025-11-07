@@ -6,6 +6,26 @@ import { PaymentCondition } from '@/domains/sales/types/types';
 import { useCartStore } from '@/store';
 import { TransactionData } from '@/store/cart/types';
 
+export type UseCheckoutResponse = {
+  loading: boolean;
+  error: string | null;
+  selectedMethod: string;
+  setSelectedMethod: React.Dispatch<React.SetStateAction<string>>;
+  availableConditions: PaymentCondition[];
+  discountInput: number;
+  handleDiscountChange: (value: string | number) => void;
+  handleInstallmentChange: (value: string) => void;
+  setCartInstallments: (installments: number) => void;
+  currentDiscountAmount: number;
+  calculatedInterest: number;
+  splitDownPayment: number | string;
+  setSplitDownPayment: React.Dispatch<React.SetStateAction<number | string>>;
+  splitDownPaymentMethod: string;
+  setSplitDownPaymentMethod: React.Dispatch<React.SetStateAction<string>>;
+  splitInstallmentMethod: string;
+  setSplitInstallmentMethod: React.Dispatch<React.SetStateAction<string>>;
+};
+
 export function useCheckout(cart: TransactionData) {
   const { subtotal_amount, paymentDetails } = cart;
   const setPaymentDetails = useCartStore((state) => state.setPaymentDetails);
@@ -18,6 +38,11 @@ export function useCheckout(cart: TransactionData) {
   const [error, setError] = useState<string | null>(null);
 
   const [calculatedInterest, setCalculatedInterest] = useState(0);
+
+  // Split payment states (All props in English)
+  const [splitDownPayment, setSplitDownPayment] = useState<number | string>('');
+  const [splitDownPaymentMethod, setSplitDownPaymentMethod] = useState('pix');
+  const [splitInstallmentMethod, setSplitInstallmentMethod] = useState('card');
 
   const initialDiscountPercent =
     subtotal_amount > 0 ? (paymentDetails.discount_amount / subtotal_amount) * 100 : 0;
@@ -39,7 +64,22 @@ export function useCheckout(cart: TransactionData) {
     const discountAmount = calculateDiscountAmount(discountInput);
     const baseTotal = subtotal_amount - discountAmount;
 
-    if (selectedMethod !== 'card' && selectedMethod !== 'credit') {
+    let methodToFetch: string | null = null;
+    let amountToFetch: number = 0;
+
+    if (selectedMethod === 'card' || selectedMethod === 'credit') {
+      methodToFetch = selectedMethod;
+      amountToFetch = baseTotal;
+    } else if (selectedMethod === 'split') {
+      if (splitInstallmentMethod === 'card' || splitInstallmentMethod === 'credit') {
+        methodToFetch = splitInstallmentMethod;
+        const splitDownPaymentNumeric = Number(splitDownPayment) || 0;
+        const remainingAmount = baseTotal - splitDownPaymentNumeric;
+        amountToFetch = remainingAmount > 0 ? remainingAmount : 0;
+      }
+    }
+
+    if (!methodToFetch || amountToFetch <= 0) {
       setAvailableConditions([]);
       setCalculatedInterest(0);
       setPaymentDetails({
@@ -51,11 +91,13 @@ export function useCheckout(cart: TransactionData) {
       return;
     }
 
+    const repassInterest = selectedMethod !== 'split';
+
     const fetchInstallments = async () => {
       setLoading(true);
       setError(null);
       try {
-        const conditions = await getAllInsttallmentOptions(baseTotal);
+        const conditions = await getAllInsttallmentOptions(amountToFetch, repassInterest);
         setAvailableConditions(conditions);
         const currentInstallment =
           conditions.find((c) => c.installments === paymentDetails.installments) ||
@@ -63,7 +105,7 @@ export function useCheckout(cart: TransactionData) {
           conditions[0];
 
         if (currentInstallment) {
-          const interest = currentInstallment.total_value - baseTotal;
+          const interest = currentInstallment.total_value - amountToFetch;
           setCalculatedInterest(interest > 0 ? interest : 0);
 
           setPaymentDetails({
@@ -74,7 +116,7 @@ export function useCheckout(cart: TransactionData) {
           });
         }
       } catch (err: any) {
-        setError(err.message || 'Não foi possível carregar as opções de parcelamento.');
+        setError(err.message || 'Could not load installment options.');
         setAvailableConditions([]);
       } finally {
         setLoading(false);
@@ -88,6 +130,8 @@ export function useCheckout(cart: TransactionData) {
     setPaymentDetails,
     discountInput,
     paymentDetails.installments,
+    splitDownPayment,
+    splitInstallmentMethod,
   ]);
 
   useEffect(() => {
@@ -107,7 +151,18 @@ export function useCheckout(cart: TransactionData) {
       const discountAmount = calculateDiscountAmount(discountInput);
       const baseTotal = subtotal_amount - discountAmount;
 
-      const interest = condition.total_value - baseTotal;
+      let amountToFetch = 0;
+      if (selectedMethod === 'card' || selectedMethod === 'credit') {
+        amountToFetch = baseTotal;
+      } else if (
+        selectedMethod === 'split' &&
+        (splitInstallmentMethod === 'card' || splitInstallmentMethod === 'credit')
+      ) {
+        const splitDownPaymentNumeric = Number(splitDownPayment) || 0;
+        amountToFetch = baseTotal - splitDownPaymentNumeric;
+      }
+
+      const interest = condition.total_value - amountToFetch;
       setCalculatedInterest(interest > 0 ? interest : 0);
 
       setPaymentDetails({
@@ -130,9 +185,12 @@ export function useCheckout(cart: TransactionData) {
     setDiscountInput(safePercentage);
     setPaymentDetails({
       discount_amount: discountAmount,
-      installments: paymentDetails.installments,
-      interest_rate_percentage: paymentDetails.interest_rate_percentage,
-      method: paymentDetails.method,
+    });
+  };
+
+  const setCartInstallments = (installments: number) => {
+    setPaymentDetails({
+      installments: installments,
     });
   };
 
@@ -145,7 +203,14 @@ export function useCheckout(cart: TransactionData) {
     discountInput,
     handleDiscountChange,
     handleInstallmentChange,
+    setCartInstallments,
     currentDiscountAmount,
     calculatedInterest,
+    splitDownPayment,
+    setSplitDownPayment,
+    splitDownPaymentMethod,
+    setSplitDownPaymentMethod,
+    splitInstallmentMethod,
+    setSplitInstallmentMethod,
   };
 }

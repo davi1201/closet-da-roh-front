@@ -12,6 +12,7 @@ export type CartItem = {
 };
 
 export type CartPaymentDetails = {
+  interest_rate: any;
   method: string;
   installments: number;
   interest_rate_percentage: number;

@@ -111,3 +111,12 @@ export const getProductById = async (id: string): Promise<ProductResponse> => {
     throw error;
   }
 };
+
+export const getLikedProductsByClientId = async (clientId: string): Promise<any[]> => {
+  try {
+    const response = await api.get<any[]>(`/product-interactions/liked-products/${clientId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

@@ -53,7 +53,7 @@ export const getAdminAppointments = async (
   endDate: string
 ): Promise<Appointment[]> => {
   try {
-    const response = await api.get<Appointment[]>('/admin/appointments', {
+    const response = await api.get<Appointment[]>('/appointments/admin', {
       params: { startDate, endDate }, // Envia as datas como query parameters
     });
     return response.data;
