@@ -38,8 +38,6 @@
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "axios": "^1.12.2",
-    "color-thief": "^2.2.5",
-    "color-thief-react": "^2.1.0",
     "dayjs": "^1.11.18",
     "embla-carousel": "^8.5.2",
     "embla-carousel-autoplay": "^8.5.2",
