@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 
-const getAllInsttallmentOptions = async (amount: any, repassInterest: boolean) => {
+const getAllInsttallmentOptions = async (amount: any, repassInterest: boolean = true) => {
   try {
     const response = await api.get(
       `/installments?purchaseValue=${amount}&repassInterest=${repassInterest}`

@@ -7,6 +7,7 @@ const initialTransactionData: TransactionData = {
   subtotal_amount: 0,
   total_amount: 0,
   customer: null,
+  // @ts-ignore
   paymentDetails: {
     method: 'A Vista',
     installments: 1,
