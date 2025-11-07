@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button, Grid, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { ImageGenerator } from '@/components/image-generator/image-generator';
 import BarcodeScannerIOSFallback from '@/components/ui/barcode-scanner';
 import ImageUploaderMantine from '@/components/ui/upload-file';
 import { PRODUCT_CATEGORIES } from '@/constants/product-categories';
@@ -322,103 +323,106 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
   // ##### FIM DA CORREÇÃO #####
 
   return (
-    <form onSubmit={form.onSubmit(handleSubmit)} style={{ width: '100%' }}>
-      <BarcodeScannerIOSFallback onChange={(code) => form.setFieldValue('code', code)} />
+    <>
+      <ImageGenerator clothingType={form.values.category || ''} />
+      <form onSubmit={form.onSubmit(handleSubmit)} style={{ width: '100%' }}>
+        {/* <BarcodeScannerIOSFallback onChange={(code) => form.setFieldValue('code', code)} /> */}
 
-      <Stack gap="md">
-        <Grid>
-          <Grid.Col span={{ base: 12, sm: 3 }}>
-            <Select
-              label="Margem de Lucro"
-              placeholder="Selecione a margem de lucro"
-              data={PROFIT_MARGIN_OPTIONS}
-              value={profitMargin}
-              onChange={(value) => {
-                for (let index = 0; index < form.values.variants.length; index++) {
-                  form.setFieldValue(`variants.${index}.buy_price`, '');
-                  form.setFieldValue(`variants.${index}.sale_price`, '');
-                }
-
-                setProfitMargin(value || '2.5');
-              }}
-            />
-          </Grid.Col>
-        </Grid>
-        <Grid>
-          <Grid.Col span={{ base: 12, md: 2 }}>
-            <TextInput
-              withAsterisk
-              label="Código"
-              type="number"
-              inputMode="numeric"
-              placeholder="Código do produto"
-              {...form.getInputProps('code')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 3 }}>
-            <TextInput
-              withAsterisk
-              label="Nome"
-              placeholder="Nome do produto"
-              {...form.getInputProps('name')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 3 }}>
-            <TextInput
-              withAsterisk
-              label="Descrição"
-              placeholder="Descrição resumida"
-              {...form.getInputProps('description')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Select
-              label="Fornecedor"
-              placeholder="Selecione o fornecedor"
-              data={suppliers.map((s) => ({ value: s._id, label: s.name }))}
-              {...form.getInputProps('supplier_id')}
-            />
-          </Grid.Col>
-        </Grid>
-
-        <Grid>
-          <Grid.Col span={{ base: 12, sm: 4 }}>
-            <Select
-              withAsterisk
-              label="Categoria"
-              placeholder="Selecione a categoria"
-              data={PRODUCT_CATEGORIES.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))}
-              {...form.getInputProps('category')}
-            />
-          </Grid.Col>
-        </Grid>
-
-        <Text fw={600} mt="lg">
-          Variações de Produto (Cor e Teto)
-        </Text>
         <Stack gap="md">
-          {variantFields}
-          <Button
-            variant="light"
-            onClick={handleAddVariant} // Usa a nova função
-          >
-            Adicionar Variação
-          </Button>
-        </Stack>
+          <Grid>
+            <Grid.Col span={{ base: 12, sm: 3 }}>
+              <Select
+                label="Margem de Lucro"
+                placeholder="Selecione a margem de lucro"
+                data={PROFIT_MARGIN_OPTIONS}
+                value={profitMargin}
+                onChange={(value) => {
+                  for (let index = 0; index < form.values.variants.length; index++) {
+                    form.setFieldValue(`variants.${index}.buy_price`, '');
+                    form.setFieldValue(`variants.${index}.sale_price`, '');
+                  }
 
-        <div style={{ marginTop: '40px' }}>
-          <Text>Upload de Imagens</Text>
-          <ImageUploaderMantine {...imageUploader} />
-        </div>
+                  setProfitMargin(value || '2.5');
+                }}
+              />
+            </Grid.Col>
+          </Grid>
+          <Grid>
+            <Grid.Col span={{ base: 12, md: 2 }}>
+              <TextInput
+                withAsterisk
+                label="Código"
+                type="number"
+                inputMode="numeric"
+                placeholder="Código do produto"
+                {...form.getInputProps('code')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 3 }}>
+              <TextInput
+                withAsterisk
+                label="Nome"
+                placeholder="Nome do produto"
+                {...form.getInputProps('name')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 3 }}>
+              <TextInput
+                withAsterisk
+                label="Descrição"
+                placeholder="Descrição resumida"
+                {...form.getInputProps('description')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Select
+                label="Fornecedor"
+                placeholder="Selecione o fornecedor"
+                data={suppliers.map((s) => ({ value: s._id, label: s.name }))}
+                {...form.getInputProps('supplier_id')}
+              />
+            </Grid.Col>
+          </Grid>
 
-        <Grid mt="md">
-          <Grid.Col span={12} style={{ textAlign: 'right' }}>
-            <Button type="submit" loading={isLoading}>
-              Salvar Produto
+          <Grid>
+            <Grid.Col span={{ base: 12, sm: 4 }}>
+              <Select
+                withAsterisk
+                label="Categoria"
+                placeholder="Selecione a categoria"
+                data={PRODUCT_CATEGORIES.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))}
+                {...form.getInputProps('category')}
+              />
+            </Grid.Col>
+          </Grid>
+
+          <Text fw={600} mt="lg">
+            Variações de Produto (Cor e Teto)
+          </Text>
+          <Stack gap="md">
+            {variantFields}
+            <Button
+              variant="light"
+              onClick={handleAddVariant} // Usa a nova função
+            >
+              Adicionar Variação
             </Button>
-          </Grid.Col>
-        </Grid>
-      </Stack>
-    </form>
+          </Stack>
+
+          <div style={{ marginTop: '40px' }}>
+            <Text>Upload de Imagens</Text>
+            <ImageUploaderMantine {...imageUploader} />
+          </div>
+
+          <Grid mt="md">
+            <Grid.Col span={12} style={{ textAlign: 'right' }}>
+              <Button type="submit" loading={isLoading}>
+                Salvar Produto
+              </Button>
+            </Grid.Col>
+          </Grid>
+        </Stack>
+      </form>
+    </>
   );
 }

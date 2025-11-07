@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { IconEye, IconHeart, IconPencil, IconTrash } from '@tabler/icons-react';
+import { IconCalendar, IconEye, IconHeart, IconPencil, IconTrash } from '@tabler/icons-react';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   ActionIcon,
@@ -18,6 +18,8 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DataGrid } from '@/components/ui/data-grid';
+import { maskPhone } from '@/utils/formatters';
+import BookingPage from '../appointments/client-booking';
 import { getProductsByClientId } from '../product/public/public-products-service';
 import { getAllClients } from './client-service';
 import { Client } from './types/client';
@@ -27,6 +29,8 @@ export default function ListAllClients() {
   const [opened, { toggle }] = useDisclosure();
   const [clients, setClients] = useState<Client[]>([]);
   const [productsSelecteds, setProductsSelecteds] = useState<any[]>([]);
+  const [isOpenBookingModal, { open: onOpenBooking, close: onCloseBooking }] = useDisclosure();
+  const [client, setClient] = useState<Client>({} as Client);
 
   const fetchProductsSelecteds = async (clientId: string) => {
     getProductsByClientId(clientId)
@@ -57,6 +61,7 @@ export default function ListAllClients() {
     {
       header: 'Telefone',
       accessorKey: 'phoneNumber',
+      cell: ({ row }) => <Text>{maskPhone(row.original.phoneNumber)}</Text>,
     },
     {
       header: 'Link',
@@ -92,11 +97,14 @@ export default function ListAllClients() {
         <Group gap="xs" wrap="nowrap">
           <ActionIcon
             variant="subtle"
-            color="red"
-            onClick={() => fetchProductsSelecteds(row.original._id)}
-            title="Visualizar detalhes"
+            color="yellow"
+            onClick={() => {
+              setClient(row.original);
+              onOpenBooking();
+            }}
+            title="Agendar visita"
           >
-            <IconHeart size={18} />
+            <IconCalendar size={18} />
           </ActionIcon>
 
           <ActionIcon
@@ -181,6 +189,15 @@ export default function ListAllClients() {
             </Grid>
           </Stack>
         )}
+      </Modal>
+
+      <Modal
+        opened={isOpenBookingModal}
+        onClose={onCloseBooking}
+        size="xl"
+        title={`Agendar visita para ${client.name}`}
+      >
+        <BookingPage isAdminMode={true} onSuccess={() => {}} />
       </Modal>
     </>
   );

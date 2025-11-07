@@ -1,24 +1,23 @@
 'use client';
 
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   IconAlertCircle,
   IconCalendar,
+  IconCheck,
   IconClock,
-  IconSearch,
+  IconSearch, // Mantido para o CEP
   IconUser,
 } from '@tabler/icons-react';
 import {
   ActionIcon,
   Alert,
-  Box,
   Button,
   Container,
-  Flex,
   Grid,
   Group,
-  Loader,
+  Loader, // Mantido para o CEP
   LoadingOverlay,
   Paper,
   SimpleGrid,
@@ -42,32 +41,27 @@ import {
   getAvailableDaysInMonth,
   getPublicSlotsByDay,
 } from '@/domains/appointments/appointment-service';
-// Ajuste o caminho
 import {
   AvailabilitySlot,
   BookAppointmentPayload,
   ClientAddress,
 } from '@/domains/appointments/types/appointments-types';
 import { fetchAddressByZipCode } from '@/utils/address-helpers';
+import { maskPhone } from '@/utils/formatters';
 
 dayjs.locale('pt-br');
 dayjs.extend(utc);
 
-// Ajuste o caminho
+// ============================================
+// TIPOS E INTERFACES
+// ============================================
 
-// --- Funções Auxiliares ---
-const formatSlotTime = (isoString: string): string => {
-  // Usar dayjs para formatar a hora localmente
-  return dayjs.utc(isoString).format('HH:mm');
-};
-
-// Formata Date/dayjs para YYYY-MM-DD (usando UTC para API e comparações)
-const formatDateToYMD_UTC = (date: dayjs.Dayjs | Date | null): string => {
-  if (!date) return '';
-  // Garante que estamos trabalhando com dayjs e em UTC
-  return dayjs(date).utc().format('YYYY-MM-DD');
-};
-// --- Fim Funções Auxiliares ---
+interface ClientData {
+  id: string;
+  name: string;
+  phone: string;
+  address?: ClientAddress;
+}
 
 interface ClientDetailsForm extends Omit<BookAppointmentPayload, 'slotId' | 'clientAddress'> {
   street: string;
@@ -79,74 +73,75 @@ interface ClientDetailsForm extends Omit<BookAppointmentPayload, 'slotId' | 'cli
   details?: string;
 }
 
-export default function ClientBookingPage() {
-  const router = useRouter();
-  const [activeStep, setActiveStep] = useState(0);
-  // Usar dayjs para estado interno, converter para Date apenas para o DatePicker
-  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(dayjs());
-  const [viewedMonth, setViewedMonth] = useState(dayjs());
-  const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [isBooking, setIsBooking] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [slotsError, setSlotsError] = useState<string | null>(null); // Erro específico para slots
-  const [daysError, setDaysError] = useState<string | null>(null); // Erro específico para dias
+interface BookingPageProps {
+  isAdminMode?: boolean;
+  preSelectedClient?: ClientData; // Este cliente é obrigatório no modo admin
+  onSuccess?: (appointmentId: string) => void;
+}
+
+// ============================================
+// FUNÇÕES AUXILIARES
+// ============================================
+
+const formatSlotTime = (isoString: string): string => {
+  return dayjs.utc(isoString).format('HH:mm');
+};
+
+const formatDateToYMD_UTC = (date: dayjs.Dayjs | Date | null): string => {
+  if (!date) return '';
+  return dayjs(date).utc().format('YYYY-MM-DD');
+};
+
+// ============================================
+// HOOKS REMOVIDOS
+// ============================================
+
+// useClientSearch foi removido.
+
+// ============================================
+// HOOK CUSTOMIZADO PARA DISPONIBILIDADE
+// ============================================
+
+const useAvailability = () => {
   const [availableDatesSet, setAvailableDatesSet] = useState<Set<string>>(new Set());
-  const [isLoadingAvailableDates, setIsLoadingAvailableDates] = useState(false);
-  const [isFetchingAddress, setIsFetchingAddress] = useState(false);
-  const [addressError, setAddressError] = useState<string | null>(null);
+  const [isLoadingDates, setIsLoadingDates] = useState(false);
+  const [daysError, setDaysError] = useState<string | null>(null);
+  const [viewedMonth, setViewedMonth] = useState(dayjs());
 
-  const form = useForm<ClientDetailsForm>({
-    initialValues: {
-      clientName: '',
-      clientPhone: '',
-      notes: '',
-      street: '',
-      number: '',
-      neighborhood: '',
-      city: 'Guarapuava',
-      state: 'PR',
-      zipCode: '',
-      details: '',
-    },
-    validate: {
-      clientName: (value) => (value && value.trim().length > 0 ? null : 'Nome obrigatório'),
-      clientPhone: (value) =>
-        value && /^\+?[\d\s()-]{8,}$/.test(value) ? null : 'Telefone inválido',
-      street: (value) => (value && value.trim() ? null : 'Rua obrigatória'),
-      number: (value) => (value && value.trim() ? null : 'Número obrigatório'),
-      neighborhood: (value) => (value && value.trim() ? null : 'Bairro obrigatório'),
-      city: (value) => (value && value.trim() ? null : 'Cidade obrigatória'),
-      state: (value) => (value && /^[A-Za-z]{2}$/.test(value) ? null : 'Estado (2 letras)'),
-      zipCode: (value) => (value && /^[0-9]{5}-?[0-9]{3}$/.test(value) ? null : 'CEP inválido'),
-      // notes and details are optional, no validators needed
-    },
-  });
-
-  // --- Efeito para buscar DIAS disponíveis do MÊS ---
   useEffect(() => {
-    setIsLoadingAvailableDates(true);
-    setDaysError(null); // Limpa erro anterior
+    setIsLoadingDates(true);
+    setDaysError(null);
+
     getAvailableDaysInMonth()
-      .then((dates) => {
-        // Armazena as datas no formato YYYY-MM-DD (já vem assim da API)
-        setAvailableDatesSet(new Set(dates));
-      })
+      .then((dates) => setAvailableDatesSet(new Set(dates)))
       .catch((err) => {
         console.error('Erro ao buscar dias disponíveis:', err);
         setDaysError('Não foi possível verificar os dias disponíveis.');
         setAvailableDatesSet(new Set());
       })
-      .finally(() => {
-        setIsLoadingAvailableDates(false);
-      });
-  }, [viewedMonth]); // Dispara quando o mês visualizado muda
-  // --- Fim Efeito Dias Disponíveis ---
+      .finally(() => setIsLoadingDates(false));
+  }, [viewedMonth]);
 
-  // --- Efeito para buscar SLOTS do Dia Selecionado ---
+  return {
+    availableDatesSet,
+    isLoadingDates,
+    daysError,
+    viewedMonth,
+    setViewedMonth,
+  };
+};
+
+// ============================================
+// HOOK CUSTOMIZADO PARA SLOTS
+// ============================================
+
+const useSlots = (selectedDate: dayjs.Dayjs | null) => {
+  const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+
   useEffect(() => {
-    // Não busca se a data for nula
     if (!selectedDate) {
       setAvailableSlots([]);
       setSelectedSlotId(null);
@@ -154,12 +149,12 @@ export default function ClientBookingPage() {
       return;
     }
 
-    const dateStr = formatDateToYMD_UTC(selectedDate); // Usa a função UTC
+    const dateStr = formatDateToYMD_UTC(selectedDate);
     if (!dateStr) return;
 
     setIsLoadingSlots(true);
-    setSelectedSlotId(null); // Reseta slot sempre que a data muda
-    setSlotsError(null); // Limpa erro anterior
+    setSelectedSlotId(null);
+    setSlotsError(null);
 
     getPublicSlotsByDay(dateStr)
       .then((slots) => setAvailableSlots(slots))
@@ -169,51 +164,191 @@ export default function ClientBookingPage() {
         setAvailableSlots([]);
       })
       .finally(() => setIsLoadingSlots(false));
-  }, [selectedDate]); // Dispara quando a data selecionada muda
-  // --- Fim Efeito Slots ---
+  }, [selectedDate]);
 
+  return {
+    availableSlots,
+    isLoadingSlots,
+    slotsError,
+    setSlotsError,
+    selectedSlotId,
+    setSelectedSlotId,
+  };
+};
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+
+export default function BookingPage({
+  isAdminMode = false,
+  preSelectedClient,
+  onSuccess,
+}: BookingPageProps) {
+  const router = useRouter();
+  const [activeStep, setActiveStep] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [isFetchingAddress, setIsFetchingAddress] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  // Hooks customizados
+  // useClientSearch foi removido
+  const { availableDatesSet, isLoadingDates, daysError, viewedMonth, setViewedMonth } =
+    useAvailability();
+  const {
+    availableSlots,
+    isLoadingSlots,
+    slotsError,
+    setSlotsError,
+    selectedSlotId,
+    setSelectedSlotId,
+  } = useSlots(selectedDate);
+
+  // Lógica de "hasRegisteredClient" simplificada
+  const hasRegisteredClient = useMemo(() => {
+    return isAdminMode;
+  }, [isAdminMode]);
+
+  const totalSteps = hasRegisteredClient ? 2 : 3;
+  const maxStep = totalSteps - 1;
+
+  const form = useForm<ClientDetailsForm>({
+    initialValues: {
+      // Pré-preenche os dados se for admin, senão começa vazio
+      clientName: preSelectedClient?.name || '',
+      clientPhone: preSelectedClient?.phone || '',
+      notes: '',
+      street: preSelectedClient?.address?.street || '',
+      number: preSelectedClient?.address?.number || '',
+      neighborhood: preSelectedClient?.address?.neighborhood || '',
+      city: 'Guarapuava',
+      state: 'PR',
+      zipCode: preSelectedClient?.address?.zipCode || '',
+      details: preSelectedClient?.address?.details || '',
+    },
+    validate: {
+      // Validação agora é pulada se 'hasRegisteredClient' (isAdminMode) for true
+      clientName: (value) => (value?.trim() ? null : 'Nome obrigatório'),
+      clientPhone: (value) =>
+        value && /^\+?[\d\s()-]{8,}$/.test(value) ? null : 'Telefone inválido',
+      street: (value) => (hasRegisteredClient || value?.trim() ? null : 'Rua obrigatória'),
+      number: (value) => (hasRegisteredClient || value?.trim() ? null : 'Número obrigatório'),
+      neighborhood: (value) => (hasRegisteredClient || value?.trim() ? null : 'Bairro obrigatório'),
+      city: (value) => (hasRegisteredClient || value?.trim() ? null : 'Cidade obrigatória'),
+      state: (value) =>
+        hasRegisteredClient || (value && /^[A-Za-z]{2}$/.test(value)) ? null : 'Estado (2 letras)',
+      zipCode: (value) =>
+        hasRegisteredClient || (value && /^[0-9]{5}-?[0-9]{3}$/.test(value))
+          ? null
+          : 'CEP inválido',
+    },
+  });
+
+  // handleClientSelect e searchClients foram removidos
+
+  const handleZipCodeBlur = async () => {
+    const zipCode = form.values.zipCode;
+    if (zipCode && /^\d{5}-?\d{3}$/.test(zipCode)) {
+      setIsFetchingAddress(true);
+      setAddressError(null);
+
+      try {
+        const address = await fetchAddressByZipCode(zipCode);
+        form.setValues({
+          street: address.street,
+          neighborhood: address.neighborhood,
+          city: address.city,
+          state: address.state,
+        });
+      } catch (error: any) {
+        setAddressError(error.message);
+        notifications.show({
+          title: 'Erro no CEP',
+          message: error.message,
+          color: 'red',
+        });
+      } finally {
+        setIsFetchingAddress(false);
+      }
+    }
+  };
+
+  // ============================================
+  // FUNÇÃO DE SUBMISSÃO (LÓGICA PRINCIPAL ATUALIZADA)
+  // ============================================
   const handleBookingSubmit = async (values: ClientDetailsForm) => {
     if (!selectedSlotId) return;
 
+    // Validação extra para modo admin
+    if (isAdminMode && !preSelectedClient?.id) {
+      notifications.show({
+        title: 'Erro de Admin',
+        message: 'O ID do cliente não foi fornecido para o agendamento.',
+        color: 'red',
+      });
+      return;
+    }
+
     setIsBooking(true);
-    // Limpa apenas o erro de slots, não o de dias
     setSlotsError(null);
 
-    const clientAddress: ClientAddress = {
-      street: values.street,
-      number: values.number,
-      neighborhood: values.neighborhood,
-      city: values.city,
-      state: values.state.toUpperCase(),
-      zipCode: values.zipCode,
-      details: values.details,
-    };
-    const payload: BookAppointmentPayload = {
-      slotId: selectedSlotId,
-      clientName: values.clientName,
-      clientPhone: values.clientPhone,
-      clientAddress: clientAddress,
-      notes: values.notes,
-    };
+    let payload: Omit<
+      BookAppointmentPayload,
+      'notes' | 'clientPhone' | 'clientName' | 'clientAddress'
+    > & { clientId?: string };
+
+    if (isAdminMode && preSelectedClient) {
+      payload = {
+        slotId: selectedSlotId,
+        clientId: preSelectedClient.id,
+      };
+    } else {
+      // --- MODO PÚBLICO ---
+      // Envia os dados completos do formulário.
+      const clientAddress: ClientAddress = {
+        street: values.street,
+        number: values.number,
+        neighborhood: values.neighborhood,
+        city: values.city,
+        state: values.state.toUpperCase(),
+        zipCode: values.zipCode,
+        details: values.details,
+      };
+
+      payload = {
+        slotId: selectedSlotId,
+        clientName: values.clientName,
+        clientPhone: values.clientPhone,
+        clientAddress: clientAddress,
+        notes: values.notes,
+      };
+    }
 
     try {
-      await bookAppointment(payload);
+      const result = await bookAppointment(payload);
+
       notifications.show({
         title: 'Agendamento Confirmado!',
-        message: 'Sua visita foi agendada com sucesso.',
+        message: isAdminMode
+          ? `Visita agendada para ${preSelectedClient?.name}`
+          : 'Sua visita foi agendada com sucesso.',
         color: 'green',
       });
+
       setBookingSuccess(true);
-      // Resetar estados após sucesso
+
+      if (onSuccess) {
+        onSuccess(result._id || '');
+      } else {
+        router.push(isAdminMode ? '/admin/appointments' : `/products/${values.clientPhone}`);
+      }
+
       form.reset();
       setSelectedSlotId(null);
-      router.push(`/products/${form.values.clientPhone}`); // Exemplo de redirecionamento
-      // Opcional: voltar para o primeiro passo ou resetar a data
-      // setActiveStep(0);
-      // setSelectedDate(dayjs());
-      // setViewedMonth(dayjs()); // Força recarga dos dias/slots
     } catch (err: any) {
-      setSlotsError(err.message || 'Ocorreu um erro ao tentar agendar.'); // Mostrar erro no passo 3
+      setSlotsError(err.message || 'Ocorreu um erro ao tentar agendar.');
       notifications.show({
         title: 'Erro no Agendamento',
         message: err.message || 'Não foi possível completar o agendamento.',
@@ -223,8 +358,11 @@ export default function ClientBookingPage() {
       setIsBooking(false);
     }
   };
+  // ============================================
+  // FIM DA FUNÇÃO DE SUBMISSÃO
+  // ============================================
 
-  const nextStep = () => setActiveStep((current) => (current < 2 ? current + 1 : current));
+  const nextStep = () => setActiveStep((current) => (current < maxStep ? current + 1 : current));
   const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current));
 
   const handleDateSelectNext = () => {
@@ -232,7 +370,7 @@ export default function ClientBookingPage() {
       notifications.show({ message: 'Por favor, selecione uma data.', color: 'orange' });
       return;
     }
-    // Verifica se a data selecionada tem disponibilidade ANTES de avançar
+
     const dateYMD = formatDateToYMD_UTC(selectedDate);
     if (!availableDatesSet.has(dateYMD)) {
       notifications.show({
@@ -249,57 +387,50 @@ export default function ClientBookingPage() {
       notifications.show({ message: 'Por favor, selecione um horário.', color: 'orange' });
       return;
     }
-    nextStep();
+
+    // Se for admin (hasRegisteredClient = true), finaliza direto
+    if (hasRegisteredClient) {
+      handleBookingSubmit(form.values);
+    } else {
+      nextStep();
+    }
   };
 
-  // --- Função para Estilizar Dias ---
   const getDayProps = useCallback(
     (date: Date): Partial<DayProps> & { style?: React.CSSProperties } => {
-      // Converte a data do calendário para YYYY-MM-DD UTC
       const dateYMD = formatDateToYMD_UTC(date);
-      // Converte a data SELECIONADA para YYYY-MM-DD UTC (se houver)
       const selectedDateYMD = selectedDate ? formatDateToYMD_UTC(selectedDate) : null;
-      // Pega o início do dia atual em UTC para comparação
       const startOfTodayYMD = formatDateToYMD_UTC(dayjs().startOf('day'));
 
       const props: Partial<DayProps> & { style?: React.CSSProperties } = {};
       const isAvailable = availableDatesSet.has(dateYMD);
-      const isPast = dateYMD < startOfTodayYMD; // Verifica se a data é anterior a hoje
+      const isPast = dateYMD < startOfTodayYMD;
 
-      // 1. Desabilita dias passados (redundante com minDate, mas garante visualmente)
-      //    E desabilita dias futuros SEM disponibilidade
       if (isPast || (!isAvailable && dateYMD >= startOfTodayYMD)) {
         props.disabled = true;
         props.style = {
-          color: 'var(--mantine-color-gray-5)', // Cor cinza claro para desabilitado
-          // Evita que o fundo verde apareça em dias passados que *tinham* disponibilidade
+          color: 'var(--mantine-color-gray-5)',
           backgroundColor: 'transparent',
         };
       }
 
-      // 2. Estilo para dias disponíveis (não passados)
       if (isAvailable && !isPast) {
         props.style = {
-          ...(props.style || {}), // Mantém a cor cinza se for desabilitado por outra razão (improvável aqui)
-          // backgroundColor: 'var(--mantine-color-green-5)',
+          ...(props.style || {}),
           fontWeight: 'bold',
-          color: 'var(--mantine-color-gray-9)', // Texto escuro para melhor contraste
+          color: 'var(--mantine-color-gray-9)',
         };
       }
 
-      // 3. Estilo para o dia SELECIONADO (SOBRESCREVE outros estilos)
       if (selectedDateYMD === dateYMD) {
-        // Se o dia selecionado por acaso for um dia sem disponibilidade (ex: carregamento inicial antes da busca),
-        // mantém desabilitado, senão, garante que é habilitado
         props.disabled = !isAvailable;
-
         props.style = {
-          ...props.style, // Mantém borderRadius se disponível
+          ...props.style,
           fontWeight: 'bold',
           backgroundColor: isAvailable
             ? 'var(--mantine-color-green-9)'
-            : 'var(--mantine-color-gray-2)', // Azul se disponível, cinza se não
-          color: isAvailable ? 'white' : 'var(--mantine-color-gray-5)', // Branco se disponível, cinza escuro se não
+            : 'var(--mantine-color-gray-2)',
+          color: isAvailable ? 'white' : 'var(--mantine-color-gray-5)',
         };
       }
 
@@ -307,41 +438,10 @@ export default function ClientBookingPage() {
     },
     [availableDatesSet, selectedDate]
   );
-  // Depende das datas disponíveis E da data selecionada
-  // --- Fim Função de Estilização ---
 
-  const handleZipCodeBlur = async () => {
-    const zipCode = form.values.zipCode;
-    if (zipCode && /^\d{5}-?\d{3}$/.test(zipCode)) {
-      // Verifica se tem valor e formato básico
-      setIsFetchingAddress(true);
-      setAddressError(null);
-      try {
-        const address = await fetchAddressByZipCode(zipCode);
-        // Preenche os campos do formulário com os dados retornados
-        form.setValues({
-          street: address.street,
-          neighborhood: address.neighborhood,
-          city: address.city,
-          state: address.state,
-        });
-        // Opcional: Mover o foco para o campo 'Número'
-      } catch (error: any) {
-        setAddressError(error.message);
-        // Opcional: Limpar campos se o CEP for inválido/não encontrado
-        // form.setValues({ street: '', neighborhood: '', city: '', state: '' });
-        notifications.show({
-          title: 'Erro no CEP',
-          message: error.message,
-          color: 'red',
-        });
-      } finally {
-        setIsFetchingAddress(false);
-      }
-    } else {
-      setAddressError(null); // Limpa erro se o formato for inválido
-    }
-  };
+  // ============================================
+  // RENDERIZAÇÃO
+  // ============================================
 
   if (bookingSuccess) {
     return (
@@ -351,13 +451,18 @@ export default function ClientBookingPage() {
             <Title order={2} c="green.7">
               Agendamento Confirmado!
             </Title>
-            <Text>Obrigado! Entraremos em contato em breve.</Text>
+            <Text>
+              {isAdminMode
+                ? 'O cliente foi agendado com sucesso.'
+                : 'Obrigado! Entraremos em contato em breve.'}
+            </Text>
             <Button
               onClick={() => {
-                setBookingSuccess(false); // Volta para o formulário
+                setBookingSuccess(false);
                 setActiveStep(0);
                 setSelectedDate(dayjs());
-                setViewedMonth(dayjs()); // Dispara busca de dias/slots novamente
+                setViewedMonth(dayjs());
+                form.reset();
               }}
               mt="md"
             >
@@ -374,25 +479,41 @@ export default function ClientBookingPage() {
       <Container size="md" py="xl">
         <Stack gap="xl">
           <Title order={2} ta="center">
-            Agende sua visita
+            {isAdminMode ? 'Agendar Visita para Cliente' : 'Agende sua visita'}
           </Title>
           <Text ta="center" c="dimmed">
-            Siga os passos para escolher o melhor horário.
+            {hasRegisteredClient
+              ? 'Escolha a data e horário para a visita'
+              : 'Siga os passos para escolher o melhor horário.'}
           </Text>
 
+          {/* O formulário de busca de cliente foi REMOVIDO daqui */}
+
+          {/* Mostra info do cliente pré-selecionado (Modo Admin) */}
+          {preSelectedClient && isAdminMode && (
+            <Alert color="green" title="Agendando para:">
+              <Text size="sm">
+                <strong>{preSelectedClient.name}</strong> - {preSelectedClient.phone}
+                {preSelectedClient.address && (
+                  <>
+                    <br />
+                    {preSelectedClient.address.street}, {preSelectedClient.address.number} -{' '}
+                    {preSelectedClient.address.neighborhood}
+                  </>
+                )}
+              </Text>
+            </Alert>
+          )}
+
           <Stepper active={activeStep} onStepClick={setActiveStep} allowNextStepsSelect={false}>
-            {/* ----- PASSO 1: DATA ----- */}
+            {/* PASSO 1: DATA */}
             <Stepper.Step
               label="Data"
               description="Escolha o dia"
               icon={<IconCalendar size={18} />}
             >
               <Paper withBorder shadow="xs" p="md" radius="md" mt="xl" pos="relative">
-                <LoadingOverlay
-                  visible={isLoadingAvailableDates}
-                  overlayProps={{ radius: 'sm', blur: 1 }}
-                />
-                {/* Mostra erro se a busca de dias falhar */}
+                <LoadingOverlay visible={isLoadingDates} overlayProps={{ radius: 'sm', blur: 1 }} />
                 {daysError && (
                   <Alert
                     title="Erro ao carregar calendário"
@@ -405,18 +526,13 @@ export default function ClientBookingPage() {
                 )}
 
                 <DatePicker
-                  value={selectedDate?.toDate()} // Converte dayjs para Date
-                  onChange={(date) => {
-                    setSelectedDate(date ? dayjs(date) : null); // Converte Date para dayjs
-                    // Não precisa resetar slotId aqui, o useEffect faz isso
-                    // Não precisa resetar step aqui, o usuário pode querer voltar
-                  }}
-                  minDate={new Date()} // JS Date aqui é ok
-                  allowDeselect={false} // Mantém sempre uma data selecionada
-                  onMonthChange={(monthDate: any) => setViewedMonth(dayjs(monthDate))} // Atualiza com dayjs
+                  value={selectedDate?.toDate()}
+                  onChange={(date) => setSelectedDate(date ? dayjs(date) : null)}
+                  minDate={new Date()}
+                  allowDeselect={false}
+                  onMonthChange={(monthDate: any) => setViewedMonth(dayjs(monthDate))}
                   // @ts-ignore
                   getDayProps={getDayProps}
-                  // O onMonthChange não causa mais o warning se o 'month' não for controlado
                 />
 
                 <Group justify="flex-end" mt="md">
@@ -424,7 +540,7 @@ export default function ClientBookingPage() {
                     onClick={handleDateSelectNext}
                     disabled={
                       !selectedDate ||
-                      isLoadingAvailableDates ||
+                      isLoadingDates ||
                       !availableDatesSet.has(formatDateToYMD_UTC(selectedDate))
                     }
                   >
@@ -434,23 +550,14 @@ export default function ClientBookingPage() {
               </Paper>
             </Stepper.Step>
 
-            {/* ----- PASSO 2: HORÁRIO ----- */}
+            {/* PASSO 2: HORÁRIO */}
             <Stepper.Step
               label="Horário"
               description="Selecione um horário"
               icon={<IconClock size={18} />}
               loading={isLoadingSlots}
             >
-              <Paper
-                // Usar key pode ajudar se houver problemas de renderização persistentes
-                // key={selectedDate?.toISOString()}
-                withBorder
-                shadow="xs"
-                p="md"
-                radius="md"
-                mt="xl"
-                pos="relative"
-              >
+              <Paper withBorder shadow="xs" p="md" radius="md" mt="xl" pos="relative">
                 <LoadingOverlay visible={isLoadingSlots} overlayProps={{ radius: 'sm', blur: 2 }} />
                 {slotsError && !isLoadingSlots && (
                   <Alert title="Erro" color="red" icon={<IconAlertCircle />}>
@@ -462,8 +569,8 @@ export default function ClientBookingPage() {
                     {availableSlots.map((slot) => (
                       <Button
                         key={slot._id}
-                        variant={selectedSlotId === slot._id ? 'filled' : 'outline'} // Usar 'filled' para destaque
-                        color={selectedSlotId === slot._id ? 'green' : 'blue'} // Cores diferentes
+                        variant={selectedSlotId === slot._id ? 'filled' : 'outline'}
+                        color={selectedSlotId === slot._id ? 'green' : 'blue'}
                         onClick={() => setSelectedSlotId(slot._id)}
                         disabled={slot.isBooked}
                         fullWidth
@@ -475,7 +582,7 @@ export default function ClientBookingPage() {
                 )}
                 {!isLoadingSlots && availableSlots.length === 0 && !slotsError && (
                   <Text c="dimmed" ta="center">
-                    Nenhum horário disponível para
+                    Nenhum horário disponível para{' '}
                     {selectedDate ? selectedDate.format('DD/MM/YYYY') : 'a data selecionada'}.
                   </Text>
                 )}
@@ -483,148 +590,175 @@ export default function ClientBookingPage() {
                   <Button variant="default" onClick={prevStep}>
                     Voltar
                   </Button>
-                  <Button onClick={handleSlotSelectNext} disabled={!selectedSlotId}>
-                    Próximo
+                  <Button
+                    onClick={handleSlotSelectNext}
+                    disabled={!selectedSlotId}
+                    loading={hasRegisteredClient && isBooking} // Botão de "Confirmar"
+                  >
+                    {hasRegisteredClient ? 'Confirmar Agendamento' : 'Próximo'}
                   </Button>
                 </Group>
               </Paper>
             </Stepper.Step>
 
-            {/* ----- PASSO 3: DADOS ----- */}
-            <Stepper.Step
-              label="Dados"
-              description="Informe seus contatos"
-              icon={<IconUser size={18} />}
-              loading={isBooking}
-            >
-              <Paper withBorder shadow="xs" p="md" radius="md" mt="xl" pos="relative">
-                <Alert title="Atenção" color="blue" mb="md">
-                  Após confirmar o agendamento, entraremos em contato para confirmar os detalhes da
-                  visita. Por enquanto estamos atendendo apenas na cidade de{' '}
-                  <b>Guarapuava - Entre Rios</b>.
-                </Alert>
-                <LoadingOverlay visible={isBooking} overlayProps={{ radius: 'sm', blur: 2 }} />
+            {/* PASSO 3: DADOS (Renderização condicional AGORA FUNCIONA) */}
+            {!hasRegisteredClient && (
+              <Stepper.Step
+                label="Dados"
+                description="Informe os contatos"
+                icon={<IconUser size={18} />}
+                loading={isBooking}
+              >
+                <Paper withBorder shadow="xs" p="md" radius="md" mt="xl" pos="relative">
+                  {!isAdminMode && ( // isAdminMode será false aqui
+                    <Alert title="Atenção" color="blue" mb="md">
+                      Após confirmar o agendamento, entraremos em contato para confirmar os detalhes
+                      da visita. Por enquanto estamos atendendo apenas na cidade de{' '}
+                      <b>Guarapuava - Entre Rios</b>.
+                    </Alert>
+                  )}
+                  <LoadingOverlay visible={isBooking} overlayProps={{ radius: 'sm', blur: 2 }} />
 
-                <form onSubmit={form.onSubmit(handleBookingSubmit)}>
-                  <Stack gap="md">
-                    {/* ... Inputs mantidos ... */}
-                    <TextInput
-                      withAsterisk
-                      label="Nome Completo"
-                      placeholder="Seu nome"
-                      {...form.getInputProps('clientName')}
-                    />
-                    <TextInput
-                      withAsterisk
-                      label="Telefone (WhatsApp)"
-                      placeholder="(XX) XXXXX-XXXX"
-                      {...form.getInputProps('clientPhone')}
-                    />
-                    <Title order={5} mt="sm">
-                      Endereço da visita
-                    </Title>
-                    <Grid>
-                      {/* ... Grid de endereço mantida ... */}
-                      <Grid.Col span={{ base: 12, sm: 3 }}>
-                        <TextInput
-                          withAsterisk
-                          label="CEP"
-                          placeholder="XXXXX-XXX"
-                          {...form.getInputProps('zipCode')}
-                          onBlur={handleZipCodeBlur} // Chama a função ao sair do campo
-                          error={addressError || form.errors.zipCode} // Mostra erro de busca ou validação
-                          rightSection={
-                            isFetchingAddress ? (
-                              <Loader size="xs" />
-                            ) : (
-                              <ActionIcon
-                                variant="subtle"
-                                onClick={handleZipCodeBlur}
-                                title="Buscar Endereço"
-                              >
-                                <IconSearch size={16} />
-                              </ActionIcon>
-                            )
-                          }
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 7 }}>
-                        <TextInput
-                          withAsterisk
-                          label="Rua / Avenida"
-                          placeholder="Nome da rua"
-                          {...form.getInputProps('street')}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 2 }}>
-                        <TextInput
-                          withAsterisk
-                          label="Número"
-                          placeholder="Ex: 123"
-                          {...form.getInputProps('number')}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
-                          withAsterisk
-                          label="Bairro"
-                          placeholder="Seu bairro"
-                          {...form.getInputProps('neighborhood')}
-                        />
-                      </Grid.Col>
+                  <form onSubmit={form.onSubmit(handleBookingSubmit)}>
+                    <Stack gap="md">
+                      <TextInput
+                        withAsterisk
+                        label="Nome Completo"
+                        placeholder="Seu nome"
+                        {...form.getInputProps('clientName')}
+                      />
+                      <TextInput
+                        withAsterisk
+                        label="Telefone (WhatsApp)"
+                        placeholder="(XX) XXXXX-XXXX"
+                        value={maskPhone(form.values.clientPhone)}
+                        onChange={(event) =>
+                          form.setFieldValue('clientPhone', event.currentTarget.value)
+                        }
+                      />
 
-                      <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
-                          disabled
-                          withAsterisk
-                          label="Cidade"
-                          placeholder="Sua cidade"
-                          {...form.getInputProps('city')}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 4 }}>
-                        <TextInput
-                          disabled
-                          withAsterisk
-                          label="Estado (Sigla)"
-                          placeholder="Ex: PR"
-                          maxLength={2}
-                          {...form.getInputProps('state')}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={12}>
-                        <TextInput
-                          label="Complemento / Ponto de Referência"
-                          placeholder="Ex: Apto 101, Próximo ao mercado"
-                          {...form.getInputProps('details')}
-                        />
-                      </Grid.Col>
-                    </Grid>
-                    <Textarea
-                      label="Observações (Opcional)"
-                      placeholder="Alguma preferência ou informação adicional?"
-                      {...form.getInputProps('notes')}
-                    />
+                      <Title order={5} mt="sm">
+                        Endereço da visita
+                      </Title>
 
-                    {/* Mostra erro específico do passo 3 (agendamento) */}
-                    {slotsError && !isBooking && (
-                      <Alert title="Erro ao Agendar" color="red" icon={<IconAlertCircle />} mt="md">
-                        {slotsError}
-                      </Alert>
-                    )}
+                      <Grid>
+                        <Grid.Col span={{ base: 12, sm: 3 }}>
+                          <TextInput
+                            withAsterisk
+                            label="CEP"
+                            placeholder="XXXXX-XXX"
+                            {...form.getInputProps('zipCode')}
+                            onBlur={handleZipCodeBlur}
+                            error={addressError || form.errors.zipCode}
+                            rightSection={
+                              isFetchingAddress ? (
+                                <Loader size="xs" />
+                              ) : (
+                                <ActionIcon
+                                  variant="subtle"
+                                  onClick={handleZipCodeBlur}
+                                  title="Buscar Endereço"
+                                >
+                                  <IconSearch size={16} />
+                                </ActionIcon>
+                              )
+                            }
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 7 }}>
+                          <TextInput
+                            withAsterisk
+                            label="Rua / Avenida"
+                            placeholder="Nome da rua"
+                            {...form.getInputProps('street')}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 2 }}>
+                          <TextInput
+                            withAsterisk
+                            label="Número"
+                            placeholder="Ex: 123"
+                            {...form.getInputProps('number')}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 4 }}>
+                          <TextInput
+                            withAsterisk
+                            label="Bairro"
+                            placeholder="Seu bairro"
+                            {...form.getInputProps('neighborhood')}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 4 }}>
+                          <TextInput
+                            disabled
+                            withAsterisk
+                            label="Cidade"
+                            placeholder="Sua cidade"
+                            {...form.getInputProps('city')}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 4 }}>
+                          <TextInput
+                            disabled
+                            withAsterisk
+                            label="Estado (Sigla)"
+                            placeholder="Ex: PR"
+                            maxLength={2}
+                            {...form.getInputProps('state')}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={12}>
+                          <TextInput
+                            label="Complemento / Ponto de Referência"
+                            placeholder="Ex: Apto 101, Próximo ao mercado"
+                            {...form.getInputProps('details')}
+                          />
+                        </Grid.Col>
+                      </Grid>
 
-                    <Group justify="space-between" mt="md">
-                      <Button variant="default" onClick={prevStep} disabled={isBooking}>
-                        Voltar
-                      </Button>
-                      <Button type="submit" loading={isBooking} size="md">
-                        Confirmar Agendamento
-                      </Button>
-                    </Group>
+                      <Textarea
+                        label="Observações (Opcional)"
+                        placeholder="Alguma preferência ou informação adicional?"
+                        {...form.getInputProps('notes')}
+                      />
+
+                      {slotsError && !isBooking && (
+                        <Alert
+                          title="Erro ao Agendar"
+                          color="red"
+                          icon={<IconAlertCircle />}
+                          mt="md"
+                        >
+                          {slotsError}
+                        </Alert>
+                      )}
+
+                      <Group justify="space-between" mt="md">
+                        <Button variant="default" onClick={prevStep} disabled={isBooking}>
+                          Voltar
+                        </Button>
+                        <Button type="submit" loading={isBooking} size="md">
+                          Confirmar Agendamento
+                        </Button>
+                      </Group>
+                    </Stack>
+                  </form>
+                </Paper>
+              </Stepper.Step>
+            )}
+
+            {/* PASSO COMPLETADO (visual apenas) */}
+            {hasRegisteredClient && (
+              <Stepper.Completed>
+                <Paper withBorder shadow="xs" p="md" radius="md" mt="xl">
+                  <Stack align="center" gap="md">
+                    <IconCheck size={48} color="green" />
+                    <Title order={3}>Agendamento Realizado!</Title>
                   </Stack>
-                </form>
-              </Paper>
-            </Stepper.Step>
+                </Paper>
+              </Stepper.Completed>
+            )}
           </Stepper>
         </Stack>
       </Container>

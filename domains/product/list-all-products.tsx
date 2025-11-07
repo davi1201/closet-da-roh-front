@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Grid, Group, Modal, Skeleton, Stack, Text } from '@mantine/core';
+import { Alert, Button, Chip, Grid, Group, Modal, Skeleton, Stack, Text } from '@mantine/core';
 import { useDebouncedValue, useToggle } from '@mantine/hooks'; // Hook para evitar spam na API
 import { showNotification } from '@mantine/notifications'; // Para feedback
 
 import AddCartProduct from '@/components/shared/add-product-cart';
 import ProductCard from '@/components/shared/product-card';
 import ProductsDetail from '@/components/shared/products-detail';
+import { PRODUCT_CATEGORIES } from '@/constants/product-categories';
 import { useCartStore } from '@/store';
 import { useAppStore } from '@/store/app/use-app-store';
 import ProductAdminActionButtons from './components/product-admin-actions';
@@ -38,6 +39,7 @@ export default function ListAllProducts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [productSelected, setProductSelected] = useState<ProductResponse | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isModalProductDetailsOpen, setIsModalProductDetailsOpen] = useState(false);
 
   const [debouncedSearch] = useDebouncedValue(searchTerm, 300);
@@ -91,6 +93,26 @@ export default function ListAllProducts() {
     deleteProductMutation(id);
   };
 
+  const getCategoryLabel = (categoryValue: string): string => {
+    const category = PRODUCT_CATEGORIES.find((cat) => cat.value === categoryValue);
+    return category?.label.toUpperCase() || categoryValue;
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategory) return products;
+    return products.filter((p) => p.category === selectedCategory);
+  }, [products, selectedCategory]);
+
+  const categories = useMemo(() => {
+    if (!products.length) return [];
+
+    const uniqueCategories = new Set(
+      products.map((p) => p.category).filter((cat): cat is string => Boolean(cat))
+    );
+
+    return Array.from(uniqueCategories);
+  }, [products]);
+
   return (
     <>
       <Stack>
@@ -134,12 +156,35 @@ export default function ListAllProducts() {
           </Text>
         )}
 
-        {!isLoading && !isError && products.length > 0 && (
+        {/* Filtros de categoria */}
+        {categories.length > 0 && (
+          <Chip.Group
+            value={selectedCategory}
+            onChange={(value) =>
+              setSelectedCategory(Array.isArray(value) ? value[0] || '' : value || '')
+            }
+          >
+            <Group justify="center" mt="md" mb="lg" gap="xs">
+              <Chip value="" variant="outline" size="sm" radius="sm">
+                Todas
+              </Chip>
+              {categories.map((category) => (
+                <Chip key={category} value={category} variant="outline" size="sm" radius="sm">
+                  {getCategoryLabel(category)}
+                </Chip>
+              ))}
+            </Group>
+          </Chip.Group>
+        )}
+
+        {!isLoading && !isError && filteredProducts.length > 0 && (
           <Grid gutter="xl">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <Grid.Col span={{ base: 12, xs: 12, sm: 6, md: 4, lg: 3 }} key={product._id}>
                 <ProductCard
                   product={product}
+                  showPrice={mode === 'admin'}
+                  showVariations
                   onSelect={(product) => {
                     setProductSelected(product);
                     setModalOpen(true);

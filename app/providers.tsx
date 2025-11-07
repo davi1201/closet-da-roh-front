@@ -17,7 +17,7 @@ export default function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme="light">
+      <MantineProvider theme={theme}>
         <Notifications position="top-center" />
         {children}
       </MantineProvider>

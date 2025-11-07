@@ -1,26 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { IconCalendar } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Alert,
-  Box,
-  Button,
-  Center,
-  Chip,
-  Flex,
-  Grid,
-  Group,
-  Image,
-  Loader,
-  Modal,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Center, Chip, Group, Loader, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import ProductCard from '@/components/shared/product-card';
 import ProductsDetail from '@/components/shared/products-detail';
 import { PRODUCT_CATEGORIES } from '@/constants/product-categories';
@@ -203,7 +186,8 @@ export default function ListaAllPublicProducts() {
             <ProductCard
               key={product._id}
               product={product}
-              showPrice={true}
+              isPublic={true}
+              showVariations={true}
               onSelect={handleProductSelect}
             >
               {

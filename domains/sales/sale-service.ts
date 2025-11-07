@@ -86,8 +86,6 @@ export const getSalesSummary = async (): Promise<{
   }
 };
 
-// Futuramente:
-/*
 export const cancelSale = async (id: string): Promise<{ message: string }> => {
   try {
     const response = await api.patch<{ message: string }>(`${API_BASE_URL}/${id}/cancel`);
@@ -96,4 +94,3 @@ export const cancelSale = async (id: string): Promise<{ message: string }> => {
     throw error;
   }
 };
-*/
