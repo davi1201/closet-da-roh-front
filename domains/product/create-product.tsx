@@ -53,6 +53,7 @@ export default function CreateProduct() {
         sku: null,
       },
     ],
+    fabric_composition: [],
   };
 
   return (

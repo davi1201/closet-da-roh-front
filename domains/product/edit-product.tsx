@@ -42,6 +42,7 @@ export default function EditProduct() {
         category: data.category,
         images: data.images,
         variants: formattedVariants,
+        fabric_composition: [],
       };
 
       setProductData(initialValues);
