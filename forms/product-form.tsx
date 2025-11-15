@@ -24,6 +24,17 @@ const FABRIC_OPTIONS = [
   { value: 'Elastano', label: 'Elastano' },
   { value: 'Poliester', label: 'Poliéster' },
   { value: 'Poliamida', label: 'Poliamida' },
+  { value: 'Seda', label: 'Seda' },
+  { value: 'Couro', label: 'Couro' },
+  { value: 'Cetim', label: 'Cetim' },
+  { value: 'Jeans', label: 'Jeans' },
+  { value: 'Liocel', label: 'Liocel' },
+  { value: 'Modal', label: 'Modal' },
+  { value: 'Rayon', label: 'Rayon' },
+  { value: 'Microfibra', label: 'Microfibra' },
+  { value: 'Sarja', label: 'Sarja' },
+  { value: 'Velcro', label: 'Velcro' },
+  { value: 'Veludo', label: 'Veludo' },
 ];
 
 // --- Interfaces Atualizadas ---
