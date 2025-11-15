@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Grid, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Grid, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'; // Adicionado NumberInput
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { ImageGenerator } from '@/components/image-generator/image-generator';
@@ -15,6 +15,22 @@ import { getAllSuppliers } from '@/domains/suppliers/supplier-service';
 import { SupplierResponse } from '@/domains/suppliers/types/supplier';
 import useImageUploader, { ImageObject } from '@/hooks/use-image-uploader';
 import { maskCurrency } from '@/utils/formatters';
+
+// --- Constantes de Tecido ---
+const FABRIC_OPTIONS = [
+  { value: 'Linho', label: 'Linho' },
+  { value: 'Algodão', label: 'Algodão' },
+  { value: 'Viscose', label: 'Viscose' },
+  { value: 'Elastano', label: 'Elastano' },
+  { value: 'Poliester', label: 'Poliéster' },
+  { value: 'Poliamida', label: 'Poliamida' },
+];
+
+// --- Interfaces Atualizadas ---
+export interface FabricComposition {
+  fabric: string | null;
+  percentage: string; // Usar string para o NumberInput
+}
 
 export interface ProductVariant {
   _id?: string;
@@ -31,11 +47,12 @@ export interface ProductFormValues {
   _id?: string;
   code: string;
   name: string;
-  description: string;
+  description: string; // Este campo será gerado automaticamente
   category: string | null;
   images: ProductImage[];
   supplier_id: string | null;
   variants: ProductVariant[];
+  fabric_composition: FabricComposition[]; // Novo campo para o formulário
 }
 
 interface ProductFormProps {
@@ -44,6 +61,7 @@ interface ProductFormProps {
   isLoading: boolean;
 }
 
+// --- Componente de Item de Variante (Sem alteração) ---
 interface ProductVariantItemProps {
   listKey: 'variants';
   index: number;
@@ -170,6 +188,52 @@ const ProductVariantItem = ({
   );
 };
 
+// --- Novo Componente para Item de Composição de Tecido ---
+interface FabricCompositionItemProps {
+  listKey: 'fabric_composition';
+  index: number;
+  form: any;
+  onRemove: () => void;
+}
+
+const FabricCompositionItem = ({ form, listKey, index, onRemove }: FabricCompositionItemProps) => {
+  return (
+    <Grid key={index} align="flex-end" gutter="xs">
+      <Grid.Col span={7}>
+        <Select
+          label={index === 0 ? 'Tecido' : undefined}
+          placeholder="Selecione o tecido"
+          data={FABRIC_OPTIONS}
+          searchable
+          {...form.getInputProps(`${listKey}.${index}.fabric`)}
+        />
+      </Grid.Col>
+      <Grid.Col span={3}>
+        <NumberInput
+          label={index === 0 ? 'Porcentagem' : undefined}
+          placeholder="%"
+          suffix="%"
+          min={0}
+          max={100}
+          {...form.getInputProps(`${listKey}.${index}.percentage`)}
+        />
+      </Grid.Col>
+      <Grid.Col span={2}>
+        <Button
+          variant="outline"
+          color="red"
+          fullWidth
+          onClick={onRemove}
+          style={{ marginTop: index === 0 ? '25px' : '0' }}
+        >
+          Remover
+        </Button>
+      </Grid.Col>
+    </Grid>
+  );
+};
+
+// --- Componente Principal do Formulário ---
 export default function ProductForm({ initialValues, onSubmit, isLoading }: ProductFormProps) {
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
   const [isImagesInitialized, setIsImagesInitialized] = useState(false);
@@ -183,11 +247,38 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
     { label: '300%', value: '4' },
   ];
 
+  // Função para "ler" a descrição e preencher os campos de tecido (para edição)
+  const parseDescriptionToFabrics = (desc: string): FabricComposition[] => {
+    if (!desc || !desc.startsWith('Tecido ')) {
+      return [{ fabric: null, percentage: '' }];
+    }
+    try {
+      const parts = desc.replace('Tecido ', '').split(' | ');
+      const composition = parts.map((part) => {
+        const match = part.match(/([\d.]+)% (.*)/);
+        if (match) {
+          const percentage = match[1];
+          const fabric = match[2];
+          if (FABRIC_OPTIONS.some((f) => f.value === fabric)) {
+            return { fabric, percentage };
+          }
+        }
+        return null;
+      });
+
+      const validComposition = composition.filter((c) => c !== null) as FabricComposition[];
+      return validComposition.length > 0 ? validComposition : [{ fabric: null, percentage: '' }];
+    } catch (e) {
+      console.error('Erro ao parsear descrição:', e);
+      return [{ fabric: null, percentage: '' }];
+    }
+  };
+
   const form = useForm<ProductFormValues>({
     initialValues: {
       name: '',
       code: '',
-      description: '',
+      description: '', // Será sobreescrito pelo useEffect
       category: null,
       supplier_id: null,
       images: [],
@@ -202,10 +293,14 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
         },
       ],
       ...initialValues,
+      // Lógica de inicialização da composição
+      fabric_composition: initialValues?.description
+        ? parseDescriptionToFabrics(initialValues.description)
+        : [{ fabric: null, percentage: '' }],
     },
     validate: {
       name: (value) => (value.length < 2 ? 'Nome muito curto' : null),
-      description: (value) => (value.length < 5 ? 'Descrição muito curta' : null),
+      // Validação da 'description' removida, pois é automática
       category: (value) => (value ? null : 'Selecione uma categoria'),
       supplier_id: (value) => (value ? null : 'Selecione um fornecedor'),
       variants: {
@@ -215,8 +310,47 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
         sale_price: (value) => (value ? null : 'Preço de Venda é obrigatório'),
         quantity: (value) => (value ? null : 'Quantidade é obrigária'),
       },
+      fabric_composition: {
+        fabric: (value, values, path) => {
+          // Só valida se a porcentagem também foi preenchida
+          const index = parseInt(path.split('.')[1], 10);
+          return values.fabric_composition[index]?.percentage
+            ? value
+              ? null
+              : 'Tecido é obrigatório'
+            : null;
+        },
+        percentage: (value, values, path) => {
+          // Só valida se o tecido também foi preenchido
+          const index = parseInt(path.split('.')[1], 10);
+          return values.fabric_composition[index]?.fabric
+            ? value
+              ? null
+              : 'Porcentagem é obrigatória'
+            : null;
+        },
+      },
     },
   });
+
+  // --- Efeito para gerar a 'description' automaticamente ---
+  useEffect(() => {
+    const { fabric_composition } = form.values;
+    const validFabrics = fabric_composition.filter(
+      (f) => f.fabric && f.percentage && Number(f.percentage) > 0
+    );
+
+    if (validFabrics.length === 0) {
+      form.setFieldValue('description', ''); // Limpa a descrição se não houver tecidos
+      return;
+    }
+
+    const description = validFabrics.map((f) => `${f.percentage}% ${f.fabric}`).join(' | ');
+
+    form.setFieldValue('description', `Tecido ${description}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.values.fabric_composition]);
+  // --- Fim do Efeito ---
 
   const handleImagesChange = useCallback(
     (images: ImageObject[]) => {
@@ -296,14 +430,23 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
     );
   });
 
-  // ##### CORREÇÃO APLICADA AQUI #####
+  // Renderização dos campos de tecido
+  const fabricFields = form.values.fabric_composition.map((_, index) => (
+    <FabricCompositionItem
+      key={index}
+      form={form}
+      listKey="fabric_composition"
+      index={index}
+      onRemove={() => form.removeListItem('fabric_composition', index)}
+    />
+  ));
+
   const handleAddVariant = () => {
     const currentVariants = form.values.variants;
     let newBuyPrice = '';
     let newSalePrice = '';
     let quantityDefault = 1;
 
-    // Pega os preços da última variante, se ela existir
     if (currentVariants.length > 0) {
       const lastVariant = currentVariants[currentVariants.length - 1];
       newBuyPrice = lastVariant.buy_price;
@@ -314,13 +457,12 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
     form.insertListItem('variants', {
       size: null,
       color: null,
-      buy_price: newBuyPrice, // Usa o preço copiado
-      sale_price: newSalePrice, // Usa o preço copiado
+      buy_price: newBuyPrice,
+      sale_price: newSalePrice,
       quantity: quantityDefault,
       minimum_stock: 0,
     });
   };
-  // ##### FIM DA CORREÇÃO #####
 
   return (
     <>
@@ -348,7 +490,7 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
             </Grid.Col>
           </Grid>
           <Grid>
-            <Grid.Col span={{ base: 12, md: 2 }}>
+            <Grid.Col span={{ base: 12, md: 4 }}>
               <TextInput
                 withAsterisk
                 label="Código"
@@ -358,7 +500,7 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
                 {...form.getInputProps('code')}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 3 }}>
+            <Grid.Col span={{ base: 12, md: 8 }}>
               <TextInput
                 withAsterisk
                 label="Nome"
@@ -366,15 +508,20 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
                 {...form.getInputProps('name')}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 3 }}>
-              <TextInput
+            {/* Campo Descrição Removido daqui */}
+          </Grid>
+
+          <Grid>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <Select
                 withAsterisk
-                label="Descrição"
-                placeholder="Descrição resumida"
-                {...form.getInputProps('description')}
+                label="Categoria"
+                placeholder="Selecione a categoria"
+                data={PRODUCT_CATEGORIES.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))}
+                {...form.getInputProps('category')}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Fornecedor"
                 placeholder="Selecione o fornecedor"
@@ -384,27 +531,32 @@ export default function ProductForm({ initialValues, onSubmit, isLoading }: Prod
             </Grid.Col>
           </Grid>
 
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <Select
-                withAsterisk
-                label="Categoria"
-                placeholder="Selecione a categoria"
-                data={PRODUCT_CATEGORIES.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))}
-                {...form.getInputProps('category')}
-              />
-            </Grid.Col>
-          </Grid>
+          {/* --- Nova Seção de Composição de Tecido --- */}
+          <Text fw={600} mt="lg">
+            Composição do Tecido
+          </Text>
+          <Stack gap="xs">
+            {fabricFields}
+            <Button
+              variant="light"
+              onClick={() =>
+                form.insertListItem('fabric_composition', {
+                  fabric: null,
+                  percentage: '',
+                })
+              }
+            >
+              Adicionar Tecido
+            </Button>
+          </Stack>
+          {/* --- Fim da Nova Seção --- */}
 
           <Text fw={600} mt="lg">
-            Variações de Produto (Cor e Teto)
+            Variações de Produto (Cor e Tamanho)
           </Text>
           <Stack gap="md">
             {variantFields}
-            <Button
-              variant="light"
-              onClick={handleAddVariant} // Usa a nova função
-            >
+            <Button variant="light" onClick={handleAddVariant}>
               Adicionar Variação
             </Button>
           </Stack>

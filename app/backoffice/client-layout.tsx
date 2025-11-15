@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconShoppingBag } from '@tabler/icons-react';
 import {
+  ActionIcon, // Importe o ActionIcon
   Alert,
   AppShell,
   Burger,
@@ -11,6 +12,7 @@ import {
   Center,
   Flex,
   Group,
+  Indicator, // (Opcional) Para contagem
   Loader,
   Modal,
   Text,
@@ -95,8 +97,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <Flex align="center" justify="space-between" gap="sm" px="xl" w="100%">
             <Group align="center" gap="sm">
               <Burger opened={opened} onClick={toggle} hiddenFrom="lg" size="sm" />
-              <Logo width={150} height={75} />
+              {/* CORREÇÃO 1: O logo foi redimensionado para caber no header de 60px.
+               */}
+              <Logo width={100} height={50} />
             </Group>
+
+            {/* CORREÇÃO 2: O componente do botão agora é responsivo por si só.
+             */}
             <CartSummaryButton onClick={() => openCart(null)} />
           </Flex>
         </AppShell.Header>
@@ -106,7 +113,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </AppShell.Navbar>
 
         <AppShell.Main>
-          {/* Só renderiza alerts após hidratação no cliente */}
           {isClient && (
             <>
               {permissionStatus === 'default' && (
@@ -147,13 +153,44 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   );
 }
 
+// --- COMPONENTE DE BOTÃO ATUALIZADO ---
+
 function CartSummaryButton({ onClick }: { onClick: () => void }) {
   const cartCount = useCartStore((state) => Object.keys(state.carts).length);
+  const text = cartCount > 0 ? `Carrinhos Abertos (${cartCount})` : 'Nenhum Carrinho';
 
   return (
-    <Button variant="outline" color="yellow" size="md" onClick={onClick}>
-      <IconShoppingBag size={16} style={{ marginRight: 4 }} />
-      {cartCount > 0 ? `Carrinhos Abertos (${cartCount})` : 'Nenhum Carrinho Ativo'}
-    </Button>
+    <>
+      {/* 1. Botão completo, visível apenas a partir do breakpoint 'xs' (telas maiores) */}
+      <Button
+        variant="outline"
+        color="yellow"
+        size="md"
+        onClick={onClick}
+        visibleFrom="xs"
+        leftSection={<IconShoppingBag size={16} />}
+      >
+        {text}
+      </Button>
+
+      {/* 2. Botão de ícone, oculto a partir do breakpoint 'xs' (ou seja, visível só no mobile) */}
+      <Indicator
+        inline
+        label={cartCount}
+        size={16}
+        disabled={cartCount === 0}
+        color="red"
+        hiddenFrom="xs"
+      >
+        <ActionIcon
+          variant="outline"
+          color="yellow"
+          size="lg" // 'lg' no ActionIcon tem altura similar a 'md' no Button
+          onClick={onClick}
+        >
+          <IconShoppingBag size={18} />
+        </ActionIcon>
+      </Indicator>
+    </>
   );
 }
