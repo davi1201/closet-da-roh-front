@@ -4,9 +4,20 @@ import { useRouter } from 'next/navigation';
 import { IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
-import { ActionIcon, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Grid, // 1. Importado o Grid
+  Group,
+  Loader,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { DataGrid } from '@/components/ui/data-grid';
 import { PAYMENT_METHODS } from '@/constants/payment-method';
+// 2. Importado o novo card (confirme se o caminho está correto)
+import { SupplierSalesSummary } from '@/domains/sales/components/supplier-sales-summary';
 import { formatPrice } from '@/utils/formatters';
 import { cancelSale, getAllSales } from './sale-service';
 import { SaleResponse } from './types/types';
@@ -84,12 +95,12 @@ export default function ListAllSales() {
       cell: ({ row }) => <Text c="yellow">{formatPrice(row.original.subtotal_amount)}</Text>,
     },
     {
-      accessorKey: 'payments', // Alterado de payment_details
+      accessorKey: 'payments',
       header: 'Método de Pagamento',
       cell: ({ row }) => <Text>{getPaymentMethodDescription(row.original)}</Text>,
     },
     {
-      accessorKey: 'details', // Chave genérica para o botão
+      accessorKey: 'details',
       header: 'Detalhes',
       cell: () => (
         <Button size="xs" variant="light">
@@ -107,14 +118,6 @@ export default function ListAllSales() {
       header: 'Ações',
       cell: ({ row }) => (
         <Group gap="xs" wrap="nowrap">
-          {/* <ActionIcon
-            variant="subtle"
-            color="blue"
-            onClick={() => handleEdit(row.original._id)}
-            title="Editar venda"
-          >
-            <IconPencil size={18} />
-          </ActionIcon> */}
           <ActionIcon
             variant="subtle"
             color="red"
@@ -130,18 +133,32 @@ export default function ListAllSales() {
   ];
 
   return (
-    <Stack mt="xl" mb="xl">
+    <Stack mt="xl" mb="xl" gap="lg">
       <Title order={2}>Vendas realizadas</Title>
 
-      {isLoading ? (
-        <Group justify="center" mt="lg">
-          <Loader size="lg" />
-        </Group>
-      ) : (
-        <div style={{ width: '100%', overflowX: 'auto' }}>
-          <DataGrid columns={columns} data={sales} />
-        </div>
-      )}
+      {/* 3. Layout de Grid adicionado */}
+      <Grid>
+        <Grid.Col span={{ base: 12, md: 4, lg: 3 }}>
+          {/* O card de resumo de fornecedores é renderizado aqui */}
+          <SupplierSalesSummary />
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, md: 8, lg: 9 }}>
+          {/* A lista de vendas (DataGrid) é renderizada aqui */}
+          <Stack>
+            <Title order={4}>Histórico de Vendas</Title>
+            {isLoading ? (
+              <Group justify="center" mt="lg">
+                <Loader size="lg" />
+              </Group>
+            ) : (
+              <div style={{ width: '100%', overflowX: 'auto' }}>
+                <DataGrid columns={columns} data={sales} />
+              </div>
+            )}
+          </Stack>
+        </Grid.Col>
+      </Grid>
     </Stack>
   );
 }

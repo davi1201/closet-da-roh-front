@@ -1,10 +1,27 @@
 import api from '@/lib/api';
 import { PaymentCondition, SalePayload, SaleResponse } from './types/types';
 
-// Assumindo que você tem tipos definidos para SaleResponse, SalePayload e PaymentCondition
-
 const API_BASE_URL = '/sales';
 const INSTALLMENTS_API_URL = '/installments';
+
+// --- Tipos de Resposta ---
+
+export interface SupplierSale {
+  _id: string;
+  name: string;
+  totalSold: number;
+}
+
+export interface DashboardSummaryResponse {
+  totalVendas: number;
+  valorTotalVendas: number;
+  totalDescontoAplicado: number;
+  metodosDePagamento: Record<string, number>;
+  topClientes: { nome: string; totalGasto: number }[];
+  supplierSales: SupplierSale[];
+}
+
+// --- Funções de API ---
 
 /**
  * Registra uma nova venda no backend.
@@ -23,12 +40,16 @@ export const createSale = async (saleData: SalePayload): Promise<SaleResponse> =
 /**
  * Busca todas as condições de parcelamento disponíveis para um determinado valor.
  * @param {number} purchaseValue O valor total da compra antes da aplicação de taxas/juros.
+ * @param {boolean} [repassInterest=true] Se deve calcular o repasse de juros.
  * @returns {Promise<PaymentCondition[]>} A lista de condições de pagamento.
  */
-export const getPaymentConditions = async (purchaseValue: number): Promise<PaymentCondition[]> => {
+export const getPaymentConditions = async (
+  purchaseValue: number,
+  repassInterest: boolean = true
+): Promise<PaymentCondition[]> => {
   try {
     const response = await api.get<PaymentCondition[]>(
-      `${INSTALLMENTS_API_URL}?purchaseValue=${purchaseValue}`
+      `${INSTALLMENTS_API_URL}?purchaseValue=${purchaseValue}&repassInterest=${repassInterest}`
     );
     const sortedConditions = [...response.data].sort((a, b) => a.installments - b.installments);
 
@@ -67,25 +88,24 @@ export const getAllSales = async (status?: string): Promise<SaleResponse[]> => {
   }
 };
 
-export const getSalesSummary = async (): Promise<{
-  totalVendas: number;
-  valorTotalVendas: number;
-  totalDescontoAplicado: number;
-  metodosDePagamento: Record<string, number>;
-}> => {
+/**
+ * Busca os dados de resumo do dashboard (vendas, fornecedores, etc.).
+ * @returns {Promise<DashboardSummaryResponse>} O objeto de resumo.
+ */
+export const getDashboardSummary = async (): Promise<DashboardSummaryResponse> => {
   try {
-    const response = await api.get<{
-      totalVendas: number;
-      valorTotalVendas: number;
-      totalDescontoAplicado: number;
-      metodosDePagamento: Record<string, number>;
-    }>(`${API_BASE_URL}/summary`);
-    return response.data;
+    const { data } = await api.get<DashboardSummaryResponse>(`${API_BASE_URL}/summary`);
+    return data;
   } catch (error) {
     throw error;
   }
 };
 
+/**
+ * Cancela uma venda.
+ * @param {string} id ID da venda a ser cancelada.
+ * @returns {Promise<{ message: string }>} Mensagem de sucesso.
+ */
 export const cancelSale = async (id: string): Promise<{ message: string }> => {
   try {
     const response = await api.patch<{ message: string }>(`${API_BASE_URL}/${id}/cancel`);

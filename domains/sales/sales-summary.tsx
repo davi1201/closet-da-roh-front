@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Flex, Group, RingProgress, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { PAYMENT_METHODS } from '@/constants/payment-method';
-import { getSalesSummary } from '@/domains/sales/sale-service';
+import { getDashboardSummary } from '@/domains/sales/sale-service';
 import { formatPrice } from '@/utils/formatters';
 
 interface TopClient {
@@ -27,7 +27,7 @@ export function SalesDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const data = await getSalesSummary();
+        const data = await getDashboardSummary();
         //@ts-ignore
         setSummary(data);
       } catch (error) {
