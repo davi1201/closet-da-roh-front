@@ -56,6 +56,7 @@ const linksMockdata = [
       { to: 'clients', label: 'Clientes', icon: IconUsers },
       { to: 'suppliers', label: 'Fornecedores', icon: IconPackage },
       { to: 'desired-products', label: 'Lista de Desejos', icon: IconHeart },
+      { to: 'survey', label: 'Pesquisas', icon: IconReport },
     ],
   },
   {

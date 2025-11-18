@@ -85,7 +85,5 @@ export function KpiCards({ kpis }: KpiCardsProps) {
     </Card>
   ));
 
-  // --- AJUSTE 3 (Opcional): Ajuste o número de colunas para melhor layout ---
-  // Com 7 itens, talvez 3 ou 4 colunas fiquem melhor em telas médias
   return <SimpleGrid cols={{ base: 1, xs: 2, md: 3, lg: 4 }}>{items}</SimpleGrid>;
 }

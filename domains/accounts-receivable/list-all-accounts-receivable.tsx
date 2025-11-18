@@ -3,7 +3,17 @@
 import { useEffect, useState } from 'react';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { ColumnDef } from '@tanstack/react-table';
-import { Badge, Button, Group, LoadingOverlay, Select, Stack, Text, Title } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Card,
+  Group,
+  LoadingOverlay,
+  Select,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { DataGrid } from '@/components/ui/data-grid';
 import accountsReceivableService, {
@@ -11,8 +21,6 @@ import accountsReceivableService, {
   ReceivableStatus,
 } from '@/domains/accounts-receivable/account-receivable.service';
 import { formatPrice } from '@/utils/formatters';
-
-// --- Funções Auxiliares (Helpers) ---
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -38,20 +46,50 @@ function StatusBadge({ status }: { status: ReceivableStatus }) {
   );
 }
 
-// --- Componente Principal ---
+const currentYear = new Date().getFullYear();
+const yearsData = [String(currentYear - 1), String(currentYear), String(currentYear + 1)];
+
+const monthsData = [
+  { value: '1', label: 'Janeiro' },
+  { value: '2', label: 'Fevereiro' },
+  { value: '3', label: 'Março' },
+  { value: '4', label: 'Abril' },
+  { value: '5', label: 'Maio' },
+  { value: '6', label: 'Junho' },
+  { value: '7', label: 'Julho' },
+  { value: '8', label: 'Agosto' },
+  { value: '9', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+];
 
 export default function AccountsReceivableList() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
+  const [totalByMonth, setTotalByMonth] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ReceivableStatus | 'ALL'>('PENDING');
 
+  const now = new Date();
+  const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [year, setYear] = useState<string>(String(now.getFullYear()));
+
   const fetchReceivables = async () => {
     setLoading(true);
-    const params = filter === 'ALL' ? {} : { status: filter };
+
+    const statusParam = filter === 'ALL' ? {} : { status: filter };
+    const params = {
+      ...statusParam,
+      month: Number(month),
+      year: Number(year),
+    };
 
     accountsReceivableService
       .getAllReceivables(params)
-      .then(setReceivables)
+      .then((data: any) => {
+        setReceivables(data.accountsToReceive);
+        setTotalByMonth(data.totalByMonth);
+      })
       .catch((err) => {
         notifications.show({
           title: 'Erro ao buscar dados',
@@ -75,12 +113,9 @@ export default function AccountsReceivableList() {
         color: 'green',
         icon: <IconCheck />,
       });
-      // Atualiza a lista localmente ou busca novamente
-      // Buscar novamente é mais simples se o filtro for 'PENDING'
       if (filter === 'PENDING') {
         fetchReceivables();
       } else {
-        // Atualiza o item no estado local
         setReceivables((prev) => prev.map((r) => (r._id === id ? { ...r, status: 'PAID' } : r)));
         setLoading(false);
       }
@@ -146,25 +181,56 @@ export default function AccountsReceivableList() {
 
   useEffect(() => {
     fetchReceivables();
-  }, [filter]); // Recarrega os dados quando o filtro mudar
+  }, [filter, month, year]);
 
   return (
     <Stack mt="xl" mb="xl">
+      <div>
+        <Card withBorder radius="md" p="md">
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+              Total a receber ({monthsData.find((m) => m.value === month)?.label} / {year})
+            </Text>
+            <IconAlertCircle size={24} stroke={1.5} color={`var(--mantine-color-blue-6)`} />
+          </Group>
+          <Text size="xl" fw={700}>
+            {formatPrice(totalByMonth)}
+          </Text>
+        </Card>
+      </div>
       <Group justify="space-between">
         <Title order={2}>Contas a Receber</Title>
-        <Select
-          label="Filtrar por status"
-          value={filter}
-          onChange={(value) => setFilter(value as any)}
-          data={[
-            { value: 'PENDING', label: 'Pendentes' },
-            { value: 'OVERDUE', label: 'Vencidos' },
-            { value: 'PAID', label: 'Pagos' },
-            { value: 'ALL', label: 'Todos' },
-          ]}
-          style={{ minWidth: 200 }}
-          disabled={loading}
-        />
+        <Group>
+          <Select
+            label="Mês"
+            value={month}
+            onChange={(value) => value && setMonth(value)}
+            data={monthsData}
+            style={{ minWidth: 140 }}
+            disabled={loading}
+          />
+          <Select
+            label="Ano"
+            value={year}
+            onChange={(value) => value && setYear(value)}
+            data={yearsData}
+            style={{ minWidth: 100 }}
+            disabled={loading}
+          />
+          <Select
+            label="Filtrar por status"
+            value={filter}
+            onChange={(value) => setFilter(value as any)}
+            data={[
+              { value: 'PENDING', label: 'Pendentes' },
+              { value: 'OVERDUE', label: 'Vencidos' },
+              { value: 'PAID', label: 'Pagos' },
+              { value: 'ALL', label: 'Todos' },
+            ]}
+            style={{ minWidth: 200 }}
+            disabled={loading}
+          />
+        </Group>
       </Group>
       <div style={{ width: '100%', overflowX: 'auto', position: 'relative' }}>
         <LoadingOverlay visible={loading} overlayProps={{ radius: 'sm', blur: 1 }} />

@@ -16,7 +16,6 @@ import {
 } from '@mantine/core';
 import { DataGrid } from '@/components/ui/data-grid';
 import { PAYMENT_METHODS } from '@/constants/payment-method';
-// 2. Importado o novo card (confirme se o caminho está correto)
 import { SupplierSalesSummary } from '@/domains/sales/components/supplier-sales-summary';
 import { formatPrice } from '@/utils/formatters';
 import { cancelSale, getAllSales } from './sale-service';
@@ -30,7 +29,6 @@ function getPaymentMethodDescription(sale: SaleResponse): string {
   }
 
   if (sale.payment_details) {
-    // Formato legado: 'payment_details' é um objeto
     return PAYMENT_METHODS.get(sale.payment_details.method) || 'N/A';
   }
 
@@ -134,17 +132,12 @@ export default function ListAllSales() {
 
   return (
     <Stack mt="xl" mb="xl" gap="lg">
-      <Title order={2}>Vendas realizadas</Title>
-
-      {/* 3. Layout de Grid adicionado */}
       <Grid>
-        <Grid.Col span={{ base: 12, md: 4, lg: 3 }}>
-          {/* O card de resumo de fornecedores é renderizado aqui */}
+        {/* <Grid.Col span={{ base: 12, md: 4, lg: 3 }}>
           <SupplierSalesSummary />
-        </Grid.Col>
+        </Grid.Col> */}
 
-        <Grid.Col span={{ base: 12, md: 8, lg: 9 }}>
-          {/* A lista de vendas (DataGrid) é renderizada aqui */}
+        <Grid.Col span={{ base: 12, md: 12, lg: 12 }}>
           <Stack>
             <Title order={4}>Histórico de Vendas</Title>
             {isLoading ? (
